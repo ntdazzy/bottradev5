@@ -106,7 +106,7 @@ void TestLevels()
   }
 
 // Lỗi 29/09 (đọc mã): tuổi cản tính theo số nến trong bộ nhớ chuỗi (tối đa 1.500); khi đầy, số này đứng yên
-// nên cản tạo sau đó không bao giờ hết tuổi (SPEC 23.2: hết hạn sau 200 nến nguồn).
+// nên cản tạo sau đó không bao giờ hết tuổi. Nay M15 hết tuổi sau 5 ngày tính từ nến gốc (SPEC 24.5), kể cả khi chuỗi đã đầy.
 void TestAgeAfterFull()
   {
    ScpSeries s; s.Init(SCP_TF_M15);
@@ -117,10 +117,13 @@ void TestAgeAfterFull()
    SigLevel z;
    int ip=FindLevel(book,SIG_LV_PIVOT,0,z,-1);
    bool alive0=(ip>=0 && z.alive);
-   for(int i=0;i<SIG_LEVEL_AGE+5;i++) Feed(s,book,seen,SIG_M15,Bar(next+i,900,100,100.5,99.5,100));
+   for(int i=0;i<250;i++) Feed(s,book,seen,SIG_M15,Bar(next+i,900,100,100.5,99.5,100));
    ip=FindLevel(book,SIG_LV_PIVOT,0,z,-1);
-   Check("Cản hết tuổi sau 200 nến kể cả khi chuỗi đã đầy 1.500 nến",alive0 && ip>=0 && !z.alive && z.dead_why==2,
-         "tạo="+(string)alive0+" còn="+(string)(ip>=0 && z.alive)+" lý do="+(string)z.dead_why);
+   bool alive250=(ip>=0 && z.alive);                                  // 250 nến M15 < 5 ngày: còn sống
+   for(int i=250;i<485;i++) Feed(s,book,seen,SIG_M15,Bar(next+i,900,100,100.5,99.5,100));
+   ip=FindLevel(book,SIG_LV_PIVOT,0,z,-1);
+   Check("Cản M15 sống tới 5 ngày rồi hết tuổi, kể cả khi chuỗi đã đầy 1.500 nến",alive0 && alive250 && ip>=0 && !z.alive && z.dead_why==2,
+         "tạo="+(string)alive0+" sau 250 nến="+(string)alive250+" còn="+(string)(ip>=0 && z.alive)+" lý do="+(string)z.dead_why);
   }
 
 // Lỗi 29/09 (chạy máy thử thật): nến vừa có râu dưới xuyên hỗ trợ đổi vai vừa đóng phá lên kháng cự
@@ -461,6 +464,29 @@ void TestUnicorn()
          iu>=0 ? DoubleToString(u.sl_body,2)+"/"+DoubleToString(u.sl_wick,2)+" DOL="+DoubleToString(u.dol,2) : "");
   }
 
+// Tinh chỉnh vùng D1 (SPEC 24.5): đỉnh D1 [103, 110] → nến H4 chứa đỉnh [106, 110] → nến H1 chứa đỉnh [108.5, 110].
+void TestRefine()
+  {
+   ScpSeries d1; d1.Init(SCP_TF_D1);
+   ScpSeries h4; h4.Init(SCP_TF_H4);
+   ScpSeries h1; h1.Init(SCP_TF_H1);
+   SigLevelBook book; book.Init(0.01,1,false);
+   book.SetSeries(SIG_D1,GetPointer(d1)); book.SetSeries(SIG_H4,GetPointer(h4)); book.SetSeries(SIG_H1,GetPointer(h1));
+   double b4[][4]={{100,101,99.8,100.8},{100.8,103,100.5,102.5},{102.5,110,102,106},{106,106.5,103,103.5},{103.5,104,102.8,103.2},{103.2,103.5,102.9,103}};
+   for(int j=0;j<6;j++) h4.PushBar(Bar(120+j,14400,b4[j][0],b4[j][1],b4[j][2],b4[j][3]));
+   double b1[][4]={{102.5,104,102.4,103.8},{103.8,110,103.7,108.5},{108.5,109,106.5,107},{107,107.5,105.8,106}};
+   for(int j=0;j<4;j++) h1.PushBar(Bar(488+j,3600,b1[j][0],b1[j][1],b1[j][2],b1[j][3]));
+   long seen=0;
+   for(int i=0;i<20;i++) Feed(d1,book,seen,SIG_D1,Bar(i,86400,100,100.5,99.5,100));
+   Feed(d1,book,seen,SIG_D1,Bar(20,86400,100,110,99.8,103));
+   Feed(d1,book,seen,SIG_D1,Bar(21,86400,100,100.5,99.5,100));
+   Feed(d1,book,seen,SIG_D1,Bar(22,86400,100,100.5,99.5,100));
+   SigLevel z;
+   int ip=FindLevel(book,SIG_LV_PIVOT,0,z,-1);
+   Check("Tinh chỉnh D1 → H4 → H1: vùng [108.5, 110], ghi khung H1",ip>=0 && Near(z.bottom,108.5) && Near(z.top,110) && z.ref_tf==SIG_H1,
+         ip>=0 ? DoubleToString(z.bottom,2)+"-"+DoubleToString(z.top,2)+" "+SigRefName(z.ref_tf) : "không có");
+  }
+
 void OnStart()
   {
    TestLevels();
@@ -474,6 +500,7 @@ void OnStart()
    TestStrength();
    TestMerge();
    TestProbe();
+   TestRefine();
    TestZone();
    TestUnicorn();
    TestDetector();

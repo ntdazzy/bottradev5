@@ -1297,3 +1297,16 @@ Chủ bot chọn 4 tiêu chí; ngưỡng lấy từ 4 tài liệu khi có, còn 
 
 - Tuổi 200 nến (mục 23.2) tính theo số nến nguồn đã nhận, tăng mãi. Trước khi sửa, tuổi tính theo số nến chuỗi còn giữ (tối đa 1.500):
   khi chuỗi đầy, cản M5/M15/M30/H1 tạo sau đó không bao giờ hết tuổi, chỉ chết khi bị phá, nên sổ cản dày dần theo thời gian.
+
+### 24.5 Thu hẹp vùng khung lớn và tuổi theo thời gian (chủ bot chọn 29/09 sau lượt v5)
+
+- Lý do (lượt v5, 05–12/01/2026, 1 tuần): mỗi lần chạm có trung vị **24 cản khác chồng lên** (p90: 43); độ rộng vùng trung vị
+  M15 $3,5 · H1 $7 · H4 $9,5 · D1 $20 · W1 $52; cản sống 200 nến (D1 ~200 ngày, W1 ~4 năm). Cản thật chỉ bật ≥ 2 ATR M5
+  hơn cản giả 2,2 điểm % (44,7% so với 42,5%).
+- **Tinh chỉnh** (Rare SnR tr.10: D1→H4→H1, W→D1→H4; 411 tr.14: vùng H4/H1 trong vùng D1): cản H4 xuống H1 rồi M15; D1 xuống H4 rồi H1;
+  W1 xuống D1 rồi H4. Mỗi bước: trong khoảng thời gian của nến mẫu (đỉnh/đáy, OB, vùng Z: 1 nến; Classic/Gap: 2 nến; Doji SnR: 4 nến),
+  lấy nến khung nhỏ có đỉnh cao nhất (kháng cự) / đáy thấp nhất (hỗ trợ); vùng mới = [mép thân, đầu râu] của nến đó, nằm trong vùng cũ.
+  Bước sau lặp lại trong nến vừa chọn. Dừng khi khung nhỏ không có dữ liệu từ đầu nến mẫu. Mức thân (Classic/Gap) nằm ngoài vùng mới thì chạm
+  ở mép gần. FVG, Unicorn, số tròn, đỉnh/đáy kỳ giữ nguyên. Báo cáo chia nhóm `tinh_chinh` = khung cuối cùng đã tinh chỉnh tới.
+- **Tuổi theo thời gian** từ nến gốc: M15–H1 5 ngày, H4 3 tuần, D1 3 tháng, W1 1 năm [THỬ NGHIỆM]. Cản tạm M5 giữ 200 nến; Unicorn 24 nến.
+  Bản đổi vai hết tuổi cùng cản gốc.

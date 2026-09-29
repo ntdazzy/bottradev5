@@ -20,6 +20,11 @@
 #define SIG_UNI_AGE     24    // Unicorn: hạn tìm và hạn dùng, số nến khung nguồn (SPEC 23.3 K3, THỬ NGHIỆM)
 #define SIG_UNI_EQ_ATR  0.1   // DOL đỉnh/đáy bằng nhau: chênh <= 0,1 ATR khung nguồn (SPEC 23.3 K3, THỬ NGHIỆM)
 #define SIG_PENDING     D'3000.01.01' // vùng chưa đủ điều kiện dùng
+// Tuổi tối đa theo thời gian (SPEC 24.5, chủ bot chọn 29/09, THỬ NGHIỆM): M15–H1 5 ngày, H4 3 tuần, D1 3 tháng, W1 1 năm.
+const long SIG_AGE_SEC[8] = {0, 0, 5*86400, 5*86400, 5*86400, 21*86400, 90*86400, 365*86400};
+// Tinh chỉnh vùng khung lớn xuống khung nhỏ (SPEC 24.5; Rare SnR tr.10, 411 tr.14): hai bước, -1 = không có.
+const int  SIG_REFINE[8][2] = {{-1,-1},{-1,-1},{-1,-1},{-1,-1},{-1,-1},{4,2},{5,4},{6,5}};
+const string SIG_TF_NAME[8] = {"M1","M5","M15","M30","H1","H4","D1","W1"};
 
 enum ENUM_SIG_TF { SIG_M1=0, SIG_M5=1, SIG_M15=2, SIG_M30=3, SIG_H1=4, SIG_H4=5, SIG_D1=6, SIG_W1=7 };
 const ENUM_TIMEFRAMES SIG_PERIODS[SIG_TF_COUNT] =
@@ -135,7 +140,9 @@ struct SigLevel
    double            bos_p[2];
    int               rank;        // số nến bên trái trước khi có đáy thấp hơn (hỗ trợ) / đỉnh cao hơn (kháng cự)
    double            brk_body;    // bản đổi vai: thân nến phá theo chiều phá (ATR nguồn), 0 nếu thân < 60% biên độ
-   int               max_age;     // tuổi tối đa (nến nguồn): SIG_LEVEL_AGE, Unicorn SIG_UNI_AGE
+   int               max_age;     // tuổi tối đa (nến nguồn): SIG_LEVEL_AGE, Unicorn SIG_UNI_AGE; chỉ dùng khi max_age_sec = 0
+   long              max_age_sec; // tuổi tối đa theo thời gian từ nến gốc (giây), 0 = theo số nến
+   int               ref_tf;      // khung đã tinh chỉnh vùng tới; -1 = không tinh chỉnh
    // Vùng Z (411): chờ phá B rồi A (râu cũng tính) mới dùng được; trước đó known_at = SIG_PENDING.
    bool              pend;
    bool              got_b;
@@ -160,6 +167,7 @@ string SigBodyBucket(double b) { return b<0 ? "khong_ap_dung" : (b<1.0 ? "<1ATR"
 string SigBosBucket(int b) { return b<0 ? "khong_ap_dung" : IntegerToString(b); }
 string SigRankBucket(int r) { return r<0 ? "khong_ap_dung" : (r<10 ? "<10" : (r<50 ? "10-50" : (r<200 ? "50-200" : ">=200"))); }
 string SigConfBucket(int c) { return c>=3 ? "3+" : IntegerToString(c); }
+string SigRefName(int tf) { return tf<0 ? "khong" : SIG_TF_NAME[tf]; }
 // Kịch bản (SPEC 23.3): 1 K1 đảo chiều, 2 K2 phá rồi quay lại (đổi vai), 3 K3 Unicorn, 5 K5 tiếp diễn, 6 K2b vùng Z của 411.
 string SigScenName(int scen) { return scen==1 ? "K1" : (scen==2 ? "K2" : (scen==3 ? "K3" : (scen==5 ? "K5" : "K2b"))); }
 
@@ -183,6 +191,7 @@ private:
    int               m_cur_tf;
    SigLevel          m_stage;                   // thông tin riêng của vùng Z/Unicorn chép vào cản lúc Add
    bool              m_staged;
+   ScpSeries        *m_ser[SIG_TF_COUNT];      // chuỗi các khung (tinh chỉnh vùng); NULL = không có
    SigUniCand        m_uc[];
    int               m_ucn;
    int               m_z_made, m_uni_made;
@@ -197,7 +206,7 @@ private:
                       TimeToString(z.origin,TIME_DATE|TIME_MINUTES)+";"+TimeToString(z.known_at,TIME_DATE|TIME_MINUTES)+";"+
                       (z.dead_at>0?TimeToString(z.dead_at,TIME_DATE|TIME_MINUTES):"-")+";"+SigDeadName(z.dead_why)+";"+
                       IntegerToString(z.tests)+";"+DoubleToString(z.disp,2)+";"+DoubleToString(z.body_max,2)+";"+
-                      IntegerToString(z.bos)+";"+IntegerToString(z.rank)+";"+DoubleToString(z.brk_body,2)+"\r\n");
+                      IntegerToString(z.bos)+";"+IntegerToString(z.rank)+";"+DoubleToString(z.brk_body,2)+";"+SigRefName(z.ref_tf)+"\r\n");
      }
 
    void              Kill(int i, datetime when, int why)
@@ -286,12 +295,16 @@ private:
       z.origin=origin; z.known_at=known; z.valid_until=valid_until; z.age_start=age_start;
       z.alive=true; z.fake=false; z.parent=0; z.swept=false;
       z.max_age=SIG_LEVEL_AGE;
+      z.max_age_sec=(tf>=0 && tf<SIG_TF_COUNT) ? SIG_AGE_SEC[tf] : 0;
+      z.ref_tf=-1;
       if(m_staged)
         {
          z.max_age=m_stage.max_age; z.pend=m_stage.pend; z.z_b=m_stage.z_b; z.z_a=m_stage.z_a;
          z.sl_body=m_stage.sl_body; z.sl_wick=m_stage.sl_wick; z.dol=m_stage.dol;
+         if(type==SIG_LV_UNI) z.max_age_sec=0;
          m_staged=false;
         }
+      Refine(z);
       InitStrength(z);
       if(Push(z)<0) return 0;
       m_created[z.group]++;
@@ -332,6 +345,43 @@ private:
          Add(tf,SIG_LV_DOJI,lo,hi,dir,true,c1.open_time,c3.known_at,0,atr,age,price_now,0);
          return;
         }
+     }
+
+   // Tinh chỉnh vùng H4/D1/W1 (SPEC 24.5): trong khoảng thời gian của nến mẫu, lấy nến khung nhỏ chứa đỉnh (kháng cự) /
+   // đáy (hỗ trợ); vùng mới = [mép thân, đầu râu] của nến đó, nằm trong vùng cũ. Bước 2 lặp lại trong nến vừa chọn.
+   // Dừng khi khung nhỏ không có đủ dữ liệu. FVG (khoảng trống, không có nến) và Unicorn giữ nguyên.
+   void              Refine(SigLevel &z)
+     {
+      if(m_cur_s==NULL || z.tf!=m_cur_tf || z.tf<SIG_H4 || z.tf>=SIG_TF_COUNT || z.role==0) return;
+      if(z.type==SIG_LV_FVG || z.type==SIG_LV_UNI || z.type==SIG_LV_ROUND || z.type==SIG_LV_PD || z.type==SIG_LV_PW) return;
+      int span=(z.type==SIG_LV_CLASSIC || z.type==SIG_LV_GAP) ? 2 : (z.type==SIG_LV_DOJI ? 4 : 1);
+      datetime t0=z.origin;
+      datetime t1=t0+(datetime)(span*PeriodSeconds(SIG_PERIODS[z.tf]));
+      for(int step=0;step<2;step++)
+        {
+         int rt=SIG_REFINE[z.tf][step];
+         if(rt<0 || m_ser[rt]==NULL) break;
+         ScpSeries *s2=m_ser[rt];
+         int n2=s2.Count();
+         if(n2<1 || s2.Bar(0).open_time>t0) break; // khung nhỏ chưa có dữ liệu từ đầu nến mẫu
+         int best=-1;
+         for(int k=n2-1;k>=0;k--)
+           {
+            ScpBar b=s2.Bar(k);
+            if(b.open_time<t0) break;
+            if(b.open_time>=t1) continue;
+            if(best<0 || (z.role<0 && b.h>s2.Bar(best).h) || (z.role>0 && b.l<s2.Bar(best).l)) best=k;
+           }
+         if(best<0) break;
+         ScpBar e=s2.Bar(best);
+         double lo=(z.role<0) ? MathMax(e.o,e.c) : e.l;
+         double hi=(z.role<0) ? e.h : MathMin(e.o,e.c);
+         lo=MathMax(lo,z.bottom); hi=MathMin(hi,z.top);
+         if(hi<lo) { if(z.role<0) lo=hi; else hi=lo; }
+         z.bottom=lo; z.top=hi; z.ref_tf=rt;
+         t0=e.open_time; t1=t0+(datetime)PeriodSeconds(SIG_PERIODS[rt]);
+        }
+      if(z.lvl>0 && (z.lvl<z.bottom || z.lvl>z.top)) z.lvl=0; // mức thân nằm ngoài vùng mới: chạm ở mép gần
      }
 
    // Số thứ tự nến có chỉ số k trong chuỗi khung nguồn đang xét.
@@ -608,11 +658,13 @@ public:
       ArrayInitialize(m_bar_no,0); ArrayInitialize(m_last_open,0);
       m_cur_s=NULL; m_cur_tf=-1;
       m_staged=false; m_ucn=0; m_z_made=0; m_uni_made=0;
+      for(int t=0;t<SIG_TF_COUNT;t++) m_ser[t]=NULL;
       ArrayResize(m_uc,0,16);
       ArrayResize(m_lv,0,4096); ArrayResize(m_round_keys,0,256);
      }
 
    void              SetLog(int fh) { m_log=fh; }
+   void              SetSeries(int tf, ScpSeries *s) { if(tf>=0 && tf<SIG_TF_COUNT) m_ser[tf]=s; }
    void              SetTrend(int dir) { m_trend=dir; }
 
    double            Rand01()
@@ -796,7 +848,8 @@ public:
                   if(m_lv[j].fake && m_lv[j].parent==m_lv[i].id && m_lv[j].pend) { m_lv[j].pend=false; m_lv[j].known_at=b.known_at; }
               }
            }
-         if(m_bar_no[tf]-m_lv[i].age_start>m_lv[i].max_age) Kill(i,b.close_time,2);
+         if(m_lv[i].max_age_sec>0 ? (b.close_time-m_lv[i].origin>m_lv[i].max_age_sec)
+                                  : (m_bar_no[tf]-m_lv[i].age_start>m_lv[i].max_age)) Kill(i,b.close_time,2);
         }
      }
 

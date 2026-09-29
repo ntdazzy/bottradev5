@@ -78,6 +78,8 @@ private:
       Add("than_dong_luc="+SigBodyBucket(p.t.body_max),p,broken);
       Add("pha_cau_truc="+SigBosBucket(p.t.bos),p,broken);
       Add("do_lon_dinh="+SigRankBucket(p.t.rank),p,broken);
+      Add("tinh_chinh="+SigRefName(p.t.ref_tf),p,broken);
+      Add("nhom_can="+SigGroupName(p.t.group)+" tinh_chinh="+SigRefName(p.t.ref_tf),p,broken);
       if(p.t.flip>0) Add("nen_pha="+SigBodyBucket(p.t.brk_body),p,broken);
       if(m_raw!=INVALID_HANDLE)
          FileWriteString(m_raw,IntegerToString(p.t.level_id)+";"+(p.t.fake?"gia":"that")+";"+
@@ -86,7 +88,8 @@ private:
                          IntegerToString(p.t.conf)+";"+DoubleToString(p.t.disp,2)+";"+DoubleToString(p.t.body_max,2)+";"+
                          IntegerToString(p.t.bos)+";"+IntegerToString(p.t.rank)+";"+DoubleToString(p.t.brk_body,2)+";"+
                          DoubleToString(p.atr5,3)+";"+DoubleToString(p.best,3)+";"+(broken?"1":"0")+";"+
-                         IntegerToString((int)((when-p.t.time)/60))+"\r\n");
+                         IntegerToString((int)((when-p.t.time)/60))+";"+SigRefName(p.t.ref_tf)+";"+
+                         DoubleToString(MathAbs(p.t.far-p.t.near),3)+"\r\n");
       m_done++;
      }
 
@@ -122,7 +125,7 @@ public:
       m_raw=fh;
       if(fh!=INVALID_HANDLE)
          FileWriteString(fh,"id_can;that_gia;gio_cham;vai_tro;nhom;loai;doi_vai;lan_cham;so_can_trung;luc_bat_ATR;than_dong_luc_ATR;"
-                         "pha_cau_truc;do_lon_dinh;than_nen_pha_ATR;atr_M5;bat_gia;bi_pha;phut\r\n");
+                         "pha_cau_truc;do_lon_dinh;than_nen_pha_ATR;atr_M5;bat_gia;bi_pha;phut;tinh_chinh;be_rong_vung\r\n");
      }
 
    bool              Acc(const string key, SigProbeAcc &out)

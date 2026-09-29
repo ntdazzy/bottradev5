@@ -126,6 +126,7 @@ public:
          Add(v+"than_dong_luc="+SigBodyBucket(f.body_max),x,with_slip);
          Add(v+"pha_cau_truc="+SigBosBucket(f.bos),x,with_slip);
          Add(v+"do_lon_dinh="+SigRankBucket(f.rank),x,with_slip);
+         Add(v+"tinh_chinh="+SigRefName(f.ref_tf),x,with_slip);
          if(f.scen==2 || f.scen==5) Add(v+"nen_pha="+SigBodyBucket(f.brk_body),x,with_slip);
          if(f.entry_mode==0) Add(v+"phan_ung="+SigReactionName(f.reaction),x,with_slip);
          if(f.entry_mode==0 && f.reaction<3) Add(v+"phan_ung_dong_vuot_mep_gan="+(f.strict?"co":"khong"),x,with_slip);

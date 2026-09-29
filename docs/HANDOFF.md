@@ -39,7 +39,13 @@ K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo tr�
   Hồ sơ lúc đó: `siglab_2026h1_v5` (1 tuần), `siglab_2026h1_full_v4` (01–06).
 - Đợt 2 (SPEC 23.6, chưa có số liệu): vùng Z của 411 (K2b, M15–D1, dùng sau khi phá B rồi A) và Unicorn (K3, M5/M15, DOL đỉnh/đáy
   bằng nhau, breaker ∪ FVG, dừng lỗ theo nhánh thao túng, đích DOL ≥ 2R). Chưa lọc HSL/nhấn chìm, chưa đo đích 2 STDV.
-  `SigVerify` 57/57. Hồ sơ đổi tên: `siglab_2026h1_v6` (1 tuần), `siglab_2026h1_full_v5` (01–06).
+  `SigVerify` 57/57.
+- Lượt `siglab_2026h1_v5` (chủ bot, 1 tuần, bản có sức mạnh cản, chưa có đợt 2): 2 phút 8 giây; tín hiệu thật 1.128 (3.047 tín hiệu gộp),
+  9.077 lần chạm đo phản ứng. Cản thật bật ≥ 2 ATR M5 (~$9) 44,7% so với cản giả 42,5%; các tiêu chí sức mạnh chưa tách rõ (1 tuần);
+  OB nhỉnh nhất (+9,7 điểm). Lệnh 1R: thật −0,15R, ngẫu nhiên −0,16R, cản giả −0,18R, đánh ngược −0,12R (sau trượt, xa tin).
+  Phát hiện: mỗi lần chạm có trung vị 24 cản khác chồng lên; vùng D1 rộng ~$20, W1 ~$52 → giá luôn nằm trong vùng cản.
+- Chủ bot chọn: tinh chỉnh vùng H4/D1/W1 xuống khung nhỏ và tuổi cản theo thời gian (SPEC 24.5). `SigVerify` 58/58.
+  Hồ sơ đổi tên: `siglab_2026h1_v7` (1 tuần), `siglab_2026h1_full_v6` (01–06). Chưa chạy máy thử sau đợt 2 và 24.5.
 
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 

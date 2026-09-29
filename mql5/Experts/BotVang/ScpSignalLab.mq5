@@ -205,7 +205,7 @@ void HandleSignal(const SigSignal &g, datetime now, double bid, double ask)
       f.var_moc=g.var; f.var_sl=v; f.scen=scen; f.entry_mode=limit ? 1 : 0; f.flip_def=g.flip_def; f.wick_broken=g.wick_broken;
       f.news=news; f.bars_after=g.bars_after; f.hour=dt.hour; f.spread=spread; f.atr=g.atr;
       f.cost_r=(spread+2.0*InpSlipPerLeg)/r;
-      f.disp=g.disp; f.body_max=g.body_max; f.bos=g.bos; f.rank=g.rank; f.brk_body=g.brk_body; f.merged=g.merged;
+      f.disp=g.disp; f.body_max=g.body_max; f.bos=g.bos; f.rank=g.rank; f.brk_body=g.brk_body; f.merged=g.merged; f.ref_tf=g.ref_tf;
       if(g.fake) { g_trk.Open(SIG_K_FAKE,g.level_id,now,g.dir,bid,ask,r,k,f); continue; }
       long id=g_trk.OpenWithControls(now,g.dir,bid,ask,r,k,f);
       if(!limit && v==0 && id>0 && g_visual && InpDraw && (g.var==0 || !g.wick))
@@ -239,7 +239,7 @@ string RecLine(const SigRec &x)
             IntegerToString(f.flip_def)+";"+(f.wick_broken?"1":"0")+";"+IntegerToString(f.news)+";"+IntegerToString(f.hour)+";"+
             DoubleToString(f.spread,3)+";"+DoubleToString(f.atr,3)+";"+DoubleToString(f.cost_r,3)+";"+
             DoubleToString(f.disp,2)+";"+DoubleToString(f.body_max,2)+";"+IntegerToString(f.bos)+";"+IntegerToString(f.rank)+";"+
-            DoubleToString(f.brk_body,2)+";"+IntegerToString(f.merged);
+            DoubleToString(f.brk_body,2)+";"+IntegerToString(f.merged)+";"+SigRefName(f.ref_tf);
    for(int i=0;i<SIG_NR;i++) s+=";"+IntegerToString(x.rs[i])+";"+DoubleToString(x.rr[i],3);
    for(int j=0;j<SIG_NS;j++) s+=";"+IntegerToString(x.ss[j])+";"+DoubleToString(x.sr[j],3);
    s+=";"+DoubleToString(x.mfe,3)+";"+DoubleToString(x.mae,3);
@@ -268,7 +268,7 @@ void OpenSignalsFile()
      {
       string h="id;loai;goc;gio;chieu;gia_vao;R_gia;k_can_lon;k_can_M5;k_DOL;kich_ban;nhom_can;loai_can;bac;trung_can;phan_ung;"
                "dong_vuot_mep_gan;cach_vao;khung_vao;lan_cham_truoc;moc;dung;pha_def;rau_da_vuot;tin;gio_san;spread;atr;chi_phi_R;"
-               "luc_bat_ATR;than_dong_luc_ATR;pha_cau_truc;do_lon_dinh;than_nen_pha_ATR;so_tin_hieu_gop";
+               "luc_bat_ATR;than_dong_luc_ATR;pha_cau_truc;do_lon_dinh;than_nen_pha_ATR;so_tin_hieu_gop;tinh_chinh";
       string rn[SIG_NR]={"dua_1R","dua_1.5R","dua_2R","dua_3R","dua_can_lon","dua_DOL"};
       for(int i=0;i<SIG_NR;i++) h+=";"+rn[i]+"_kq;"+rn[i]+"_R";
       for(int j=0;j<SIG_NS;j++) h+=";hai_phan"+IntegerToString(j)+"_kq;hai_phan"+IntegerToString(j)+"_R";
@@ -333,10 +333,11 @@ int OnInit()
    for(int tf=0;tf<SIG_TF_COUNT;tf++)
      { g_s[tf].Reset(); g_s[tf].Init(SIG_PIVOT_AS[tf]); g_forming[tf]=0; g_last_pushed[tf]=0; g_seen[tf]=0; }
    g_book.Init(g_tick,InpSeed,InpFakeLevels);
+   for(int tf=0;tf<SIG_TF_COUNT;tf++) g_book.SetSeries(tf,GetPointer(g_s[tf]));
    g_fh_levels=FileOpen(g_folder+"\\vung_htf.csv",FILE_COMMON|FILE_WRITE|FILE_TXT|FILE_UNICODE);
    if(g_fh_levels!=INVALID_HANDLE)
       FileWriteString(g_fh_levels,"id;that_gia;goc;nhom;loai;vai_tro;day;dinh;gio_hinh_thanh;gio_biet;gio_het;ly_do_het;so_lan_cham;"
-                      "luc_bat_ATR;than_dong_luc_ATR;pha_cau_truc;do_lon_dinh;than_nen_pha_ATR\r\n");
+                      "luc_bat_ATR;than_dong_luc_ATR;pha_cau_truc;do_lon_dinh;than_nen_pha_ATR;tinh_chinh\r\n");
    g_book.SetLog(g_fh_levels);
    g_det.Init(InpReactBars);
    g_trk.Init(InpSeed+7,InpMaxHoldMin,InpRandomCopies);

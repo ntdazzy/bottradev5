@@ -30,6 +30,7 @@ struct SigEpisode
    double            disp, body_max, brk_body;
    int               bos, rank;
    double            sl_body, sl_wick, dol; // Unicorn (SPEC 23.3 K3)
+   int               ref_tf;
   };
 
 struct SigSignal
@@ -55,6 +56,7 @@ struct SigSignal
    int               bos, rank;
    int               merged;       // số tín hiệu cùng lúc ở cản chồng lên bị gộp vào tín hiệu này (SPEC 24.2)
    double            sl_body, sl_wick, dol;
+   int               ref_tf;       // khung đã tinh chỉnh vùng tới (SPEC 24.5); -1 không
   };
 
 // Lần chạm mới của một cản (mọi khung vào/kiểu mốc dùng chung): dùng đo phản ứng tại cản, không phụ thuộc cách vào (SPEC 24.3).
@@ -68,6 +70,7 @@ struct SigTouch
    bool              fake;
    double            atr_src, disp, body_max, brk_body;
    int               bos, rank;
+   int               ref_tf;
   };
 
 class SigDetector
@@ -128,7 +131,7 @@ private:
       g.flip=m_ep[k].flip; g.flip_def=m_ep[k].flip_def; g.cont=m_ep[k].cont;
       g.lo=m_ep[k].lo; g.hi=m_ep[k].hi; g.ltier=m_ep[k].ltier;
       g.disp=m_ep[k].disp; g.body_max=m_ep[k].body_max; g.brk_body=m_ep[k].brk_body; g.bos=m_ep[k].bos; g.rank=m_ep[k].rank;
-      g.sl_body=m_ep[k].sl_body; g.sl_wick=m_ep[k].sl_wick; g.dol=m_ep[k].dol;
+      g.sl_body=m_ep[k].sl_body; g.sl_wick=m_ep[k].sl_wick; g.dol=m_ep[k].dol; g.ref_tf=m_ep[k].ref_tf;
       int li=book.IndexOf(m_ep[k].level_id);
       SigLevel cur;
       g.wick_broken=(li>=0 && book.Get(li,cur)) ? cur.wick_broken : m_ep[k].wick_broken;
@@ -215,7 +218,7 @@ public:
                e.fake=lv.fake; e.minor=minor; e.wick=lv.wick;
                e.flip=lv.flip; e.flip_def=lv.flip_def; e.wick_broken=lv.wick_broken; e.cont=lv.cont;
                e.ltier=lv.tier; e.disp=lv.disp; e.body_max=lv.body_max; e.brk_body=lv.brk_body; e.bos=lv.bos; e.rank=lv.rank;
-               e.sl_body=lv.sl_body; e.sl_wick=lv.sl_wick; e.dol=lv.dol;
+               e.sl_body=lv.sl_body; e.sl_wick=lv.sl_wick; e.dol=lv.dol; e.ref_tf=lv.ref_tf;
                m_ep[m_n++]=e;
                if(new_test)
                  {
@@ -225,7 +228,7 @@ public:
                   t.level_id=lv.id; t.time=now; t.dir=side; t.near=nearp; t.far=farp; t.eps=eps;
                   t.group=lv.group; t.type=lv.type; t.flip=lv.flip; t.test_no=test_no; t.conf=e.conf; t.ltier=lv.tier;
                   t.fake=lv.fake; t.atr_src=lv.atr_src; t.disp=lv.disp; t.body_max=lv.body_max; t.brk_body=lv.brk_body;
-                  t.bos=lv.bos; t.rank=lv.rank;
+                  t.bos=lv.bos; t.rank=lv.rank; t.ref_tf=lv.ref_tf;
                   m_tch[m_tch_n++]=t;
                  }
                book.SetEpOpen(idx,etf,v,true);

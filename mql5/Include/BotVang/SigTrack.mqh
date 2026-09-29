@@ -53,6 +53,7 @@ struct SigFeatures
    int               rank;       // độ lớn đỉnh/đáy (số nến bên trái)
    double            brk_body;   // bản đổi vai: thân nến phá (ATR nguồn)
    int               merged;     // số tín hiệu cùng lúc ở cản chồng lên đã gộp vào (SPEC 24.2)
+   int               ref_tf;     // khung đã tinh chỉnh vùng tới (SPEC 24.5); -1 không
   };
 
 struct SigRec
