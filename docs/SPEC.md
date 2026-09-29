@@ -7,6 +7,10 @@ thoát do mốc vô hiệu cần nến M1 đóng qua mốc; bảo vệ giá vào
 vùng M1 chưa có phản ứng không làm cản mục tiêu; chỉ OB M1 và vùng M5 trở lên mở lần theo dõi vào lệnh.
 Các giá trị số vẫn là [THỬ NGHIỆM], có công tắc để đo trước/sau.
 
+**Hướng 1.4 (chủ bot chốt 29/09, chưa vào bot):** cản tìm ở khung lớn M15–W1, M1/M5 chỉ để tìm điểm vào,
+vào thị trường sau phản ứng, né tin, khối lượng theo độ lớn cản trong trần 0,25%, chốt hai phần.
+Trước khi đổi bot phải đo bằng công cụ đo tín hiệu. Chi tiết mục 22.
+
 **Trạng thái: BẢN THIẾT KẾ ĐỂ CHỦ BOT REVIEW. Chưa phải mô tả mã đã hoàn thành.**
 
 Đã chốt định hướng quản lý: không đóng theo số phút; mục tiêu có căn cứ; bảo vệ tại giá vào sau nhịp thuận;
@@ -1091,3 +1095,55 @@ Nếu ý người dùng thay đổi thì sửa SPEC có lý do trước khi sử
 
 Các nguồn trên hỗ trợ khái niệm/cơ chế kỹ thuật, **không chứng minh các ngưỡng hoặc các nhánh của bot này có lợi nhuận**.
 Có thể lập trình các trạng thái, điều kiện và hành động này. Kết quả kinh tế và mức khớp với cách nhìn của chủ bot cần được review và kiểm chứng riêng.
+
+## 22. Hướng 1.4 — cản khung lớn, vào ở M1/M5 (chủ bot chốt 29/09/2026)
+
+**Trạng thái:** quyết định hướng; **chưa triển khai trong `BotScpMtf`**. Bot 1.3 giữ nguyên cho tới khi có số đo.
+Nghiên cứu nền: `docs/research/13-entry-sl-tp-research.md`. Mọi số dưới đây là [THỬ NGHIỆM] nếu không ghi khác.
+
+### 22.1 Quyết định của chủ bot [YÊU CẦU, chốt 29/09]
+
+1. Cản tìm ở khung lớn: M15, M30, H1, H4, D1, W1, gồm vùng đỉnh/đáy, OB, FVG. M1/M5 chỉ dùng để tìm điểm vào.
+2. Chỉ vào ở cản mạnh. Ngoại lệ "cản tạm": khi giá đang đi mạnh và chỉ hồi nông, được vào ở cản nhỏ M5 theo chiều đi mạnh.
+3. Vào lệnh thị trường sau phản ứng; không treo lệnh chờ tại FVG/OB (giữ mục 1.2 và 9.3).
+4. Phản ứng đủ để vào: giá chạm cản → không có nến M5 đóng vượt mép xa của cản (không phá trong một nhịp)
+   → trên M1 hoặc M5 có **một trong**: rút râu (P1), nhấn chìm (P2), phá đỉnh/đáy nhỏ của nhịp đi vào (P3).
+5. Né tin.
+6. Khối lượng theo độ lớn cản, **không vượt 0,25% vốn mỗi lệnh**: M15/M30 0,10%; H1 0,15%; H4 0,20%;
+   D1/W1 hoặc nhiều cản trùng nhau 0,25%. Các mức % là [THỬ NGHIỆM].
+7. Chốt hai phần: phần đầu ở đích gần, phần còn lại tới cản khung lớn kế tiếp; chốt phần đầu xong thì dời dừng về giá vào.
+   Mức đích gần chọn bằng số đo trên 01–06/2026 (1R, 1,5R hoặc cản M5 gần nhất), khóa trước khi kiểm 07–09/2026.
+8. Làm công cụ đo tín hiệu trước khi đổi cách vào của bot. Dữ liệu tìm luật 01–06/2026, dữ liệu kiểm 07–09/2026.
+
+### 22.2 Định nghĩa đo [ĐỀ XUẤT, THỬ NGHIỆM]
+
+- Loại cản: vùng đỉnh/đáy, OB, FVG (hình học mục 14.3) của M15, M30, H1, H4, D1, W1; đỉnh/đáy ngày trước (dùng trong ngày kế tiếp);
+  đỉnh/đáy tuần trước (dùng trong tuần kế tiếp); số tròn $10/$50/$100. Cản khung nguồn hết hiệu lực khi nến của chính khung đó
+  đóng vượt mép xa thêm `eps_geom` của khung đó, hoặc quá 200 nến nguồn.
+- Cản tạm M5: vùng đỉnh/đáy M5, chỉ xét khi hướng cấu trúc M5 cùng chiều lệnh và nhịp hồi hiện tại không quá 50% nhịp đẩy trước
+  (từ pivot ngược gần nhất tới cực trị cuối).
+- Bậc cản: M5 tạm, M15, M30, số tròn $10 → 0,10%; H1, số tròn $50, đỉnh/đáy ngày trước → 0,15%; H4, số tròn $100,
+  đỉnh/đáy tuần trước → 0,20%; D1, W1 hoặc ≥2 cản khác khung/loại trùng nhau tại lúc chạm → 0,25%.
+  Cách xếp số tròn và mốc ngày/tuần vào bậc là đề xuất của Claude, cần chủ bot duyệt.
+- Chạm: Bid đi vào `[bottom−eps, top+eps]` từ phía hợp lệ; `eps=max(2 tick, 0,10·ATR14 khung vào)`. Tiếp cận từ trên là hỗ trợ (mua),
+  từ dưới là kháng cự (bán). Mở lại lần chạm mới cần một nến khung vào đã đóng hoàn toàn ngoài dải.
+- Phá trong một nhịp: sau chạm, có nến M5 đóng vượt mép xa thêm `eps` → hủy lần chạm.
+- Phản ứng: trong tối đa 3 nến khung vào kể từ nến chạm. P1/P2 dùng công thức mục 14.4 nhưng **không bắt đóng vượt mép gần**
+  (cản khung lớn có thể rộng); ghi riêng cờ "đạt cả điều kiện đóng vượt mép gần" để so. P3: đóng vượt đỉnh/đáy nhỏ khung vào đã khóa
+  lúc chạm (20 nến trước chạm) thêm `eps`.
+- Vào: giá thị trường ở báo giá đầu tiên sau nến phản ứng đóng, trong 2 giây; bỏ nếu Bid đã chạy quá 0,25·ATR khung vào.
+- Dừng: ngoài cực trị lần chạm cộng `max(eps, spread)`; lệnh bán cộng thêm spread (mục 14.6). Không nới để giảm tỷ lệ chi phí;
+  tín hiệu có (spread + 2·trượt)/R > 5% được đánh dấu để đo riêng.
+- Đích khung lớn: mép gần của cản bậc M15 trở lên phía trước, trừ đệm. Đích gần: 1R, 1,5R, cản M5 gần nhất; đo song song.
+
+### 22.3 Công cụ đo tín hiệu (`ScpSignalLab.mq5`) — hợp đồng
+
+- Chỉ chạy trong máy thử; không có hàm gửi lệnh. Mỗi tín hiệu và đối chứng được theo dõi trên từng tick thật tối đa 24 giờ.
+- Kết quả theo R sau spread (mua thoát Bid, bán thoát Ask), thêm cột trừ đệm trượt đã khai báo:
+  đua dừng/chốt ở 1R, 1,5R, 2R, 3R, tới đích khung lớn; chốt hai phần (đích gần + đích khung lớn, dừng về giá vào sau phần đầu);
+  quãng đi thuận/ngược lớn nhất sau 1, 5, 15, 60, 240 phút.
+- Đối chứng: đánh ngược cùng lúc; vào ngẫu nhiên cùng giờ trong ngày 1–10 ngày sau (3 lần); cản giả cùng khung/loại/bề rộng
+  đặt lệch ngẫu nhiên 1–3 lần max(bề rộng, ATR khung nguồn), đi qua đúng cùng quy trình. Hạt giống ngẫu nhiên là tham số, ghi vào báo cáo.
+- Báo cáo: tỷ lệ thắng, R trung bình, khoảng tin cậy 95%, hiệu thật − đối chứng, theo khung cản, loại cản, bậc, kiểu phản ứng,
+  khung vào, giờ, gần/xa tin, chi phí cao/thấp. Tín hiệu gần tin được ghi nhưng loại khỏi số chính.
+- Kết quả là số đo tín hiệu trên giấy, chồng lấn nhau, không phải tiền của một EA chạy một lệnh mỗi lúc.
