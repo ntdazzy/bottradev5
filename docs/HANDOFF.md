@@ -45,7 +45,12 @@ K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo tr�
   OB nhỉnh nhất (+9,7 điểm). Lệnh 1R: thật −0,15R, ngẫu nhiên −0,16R, cản giả −0,18R, đánh ngược −0,12R (sau trượt, xa tin).
   Phát hiện: mỗi lần chạm có trung vị 24 cản khác chồng lên; vùng D1 rộng ~$20, W1 ~$52 → giá luôn nằm trong vùng cản.
 - Chủ bot chọn: tinh chỉnh vùng H4/D1/W1 xuống khung nhỏ và tuổi cản theo thời gian (SPEC 24.5). `SigVerify` 58/58.
-  Hồ sơ đổi tên: `siglab_2026h1_v7` (1 tuần), `siglab_2026h1_full_v6` (01–06). Chưa chạy máy thử sau đợt 2 và 24.5.
+  Hồ sơ đổi tên: `siglab_2026h1_v7` (1 tuần), `siglab_2026h1_full_v6` (01–06).
+- Lượt `siglab_2026h1_v7` (chủ bot, 1 tuần, đủ đợt 2 + 24.5, `SigVerify` 58/58 trên máy chủ bot): 1 phút 55 giây; vùng Z tạo 449, Unicorn 53;
+  tín hiệu thật 1.188. Cản chồng mỗi lần chạm trung vị 19 (v5: 24) — phần lớn do cản M15/M30/H1 (không tinh chỉnh; tuổi M15 5 ngày
+  dài hơn 200 nến cũ). Phản ứng tại cản: thật bật ≥ 2 ATR M5 43,9% so với giả 41,3%. Nhóm nhỉnh (mẫu nhỏ): FVG +13, OB +11,
+  phá cấu trúc 1 mức +15, nến phá ≥ 1,5 ATR +19, H1 +5. Vùng tinh chỉnh bị phá nhiều hơn (H4→M15 81%, D1→H1 94%: vùng hẹp,
+  nến M5 dễ đóng qua mép xa). Lệnh 1R (dừng +0,3 ATR, xa tin): K1 −0,14R, K2 −0,19R, K5 −0,15R; K2b 24 lệnh, K3 4 lệnh — quá ít.
 
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 
