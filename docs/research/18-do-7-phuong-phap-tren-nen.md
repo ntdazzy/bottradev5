@@ -144,3 +144,18 @@ dời ±1–3 tuần; **gộp 10 lần rải**; tuổi đo cố định 120 gi�
 khoảng 95% đều chứa 0). Các "lợi thế" +5..+11 điểm trước đó là do cản giả đặt xa giá hơn. Không lệnh nào hơn ngẫu nhiên một cách chắc chắn;
 các kết quả dương đều nhờ vài lệnh rất lớn. Khớp với tài liệu (Osler: +4–5 điểm trên FX; ở vàng M1 2025 còn nhỏ hơn).
 Công cụ nghiên cứu (không kèm dữ liệu) lưu ở `scripts/research/`; dữ liệu nến Dukascopy để ngoài repo (đặt `DUKA_DIR`).
+
+## Bổ sung 29/09 (tối): khung lớn H1–H4 và "phá rồi đi tiếp"
+
+Chủ bot chọn thêm 2 hướng. Báo cáo chi tiết: `scripts/research/reports/`.
+
+- **Theo xu hướng H4/D1, hồi về vùng H1/H4, dừng lỗ ≥ 15 USD** (`trend_pullback`): C5 (H1) +0,29R ± 0,20 (184 lệnh) nhưng **mua ngẫu nhiên
+  cùng chiều, cùng dừng/chốt được +0,48R** → phần lời chỉ do vàng tăng mạnh năm 2025; điểm vào "hồi về vùng" không thêm gì. Không đạt.
+- **Phá rồi đi tiếp** (`break_go`: số tròn $50/$100, đỉnh/đáy ngày/tuần/phiên Á, đỉnh/đáy H1/H4; vào khi nến M1 đóng vượt ≥ 0,1 ATR M5,
+  dừng lỗ lại trong cản, 2R, tối đa 240 phút): discovery C3 +0,066R ± 0,089 (918 lệnh), hơn đối chứng cùng chiều +0,16 → **vừa đạt**, được
+  kiểm **một lần** trên 01–06/2026 không chỉnh gì: **−0,044R ± 0,094 (781 lệnh), đối chứng cùng chiều −0,047, cản giả −0,047 → không đạt.**
+  Kết quả discovery là may do chọn cấu hình tốt nhất trong 8.
+- Phần 01–06/2026 đã dùng cho `break_go` C3. Phần khóa 07–09/2026 vẫn chưa mở.
+
+**Tổng kết đến nay:** 9 hướng (7 cản + khung lớn + phá rồi đi tiếp) trên vàng M1 với phí 0,76 USD/lệnh: không hướng nào có lợi thế
+sau phí khi so công bằng. Đây là kết quả âm có kiểm chứng, khớp với tài liệu học thuật (docs/research/17).
