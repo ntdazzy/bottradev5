@@ -295,6 +295,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-tester.ps1 -Expe
 - Có thêm "lệnh chờ trên giấy" tại mốc chạm (nhóm `CHO_GIAY` trong báo cáo): khớp khi Bid tới đúng mốc, không chờ phản ứng;
   chỉ để so với cách vào của bot, bot không dùng lệnh chờ (SPEC 23.1). Lệnh chờ hết khi lần chạm kết thúc.
 - Cần lịch tin `Common\Files\BotVang\news_usd.csv` (chạy `ExportNews` trước); thiếu lịch thì tín hiệu ghi `tin=thieu_lich`.
+- Mỗi lượt cần `InpRunName` mới (hồ sơ hiện đặt `siglab_2026h1_v2`); tên đã có thì công cụ dừng và không ghi gì.
 - Nên chạy thử 1 tuần trước (`-From 2026.01.05 -To 2026.01.12`) để đo thời gian, rồi mới chạy 01–06.
   **Không chạy 07–09 cho tới khi chốt tối đa 3 tổ hợp** (SPEC 23.5).
 - Kết quả `Common\Files\BotScp\SignalLab\<InpRunName>\`:

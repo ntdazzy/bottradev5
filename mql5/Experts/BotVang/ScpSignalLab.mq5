@@ -51,6 +51,7 @@ int           g_signals=0, g_fake_signals=0, g_stale=0, g_chase=0, g_late_bars=0
 double        g_tick=0.01;
 double        g_last_bid=0, g_last_ask=0;
 bool          g_visual=false;
+bool          g_ready=false;   // chỉ ghi kết quả khi khởi tạo thành công: không ghi đè lượt đã có
 
 // ---------------------------------------------------------------- dữ liệu
 
@@ -301,6 +302,7 @@ int OnInit()
    g_trk.Init(InpSeed+7,InpMaxHoldMin,InpRandomCopies);
    LoadNews();
    Warmup();
+   g_ready=true;
    Print("[SIGLAB] bắt đầu ",InpRunName," | lịch tin: ",(g_news_n>0?(string)g_news_n+" sự kiện":"THIẾU"),
          " | cản nạp trước: ",g_book.Count());
    return INIT_SUCCEEDED;
@@ -345,6 +347,7 @@ void OnTick()
 
 void OnDeinit(const int reason)
   {
+   if(!g_ready) return;
    g_trk.CloseAll(g_last_bid,g_last_ask);
    g_book.FlushLog();
    if(g_fh_levels!=INVALID_HANDLE) FileClose(g_fh_levels);
