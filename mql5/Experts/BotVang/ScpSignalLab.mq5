@@ -172,7 +172,6 @@ void HandleSignal(const SigSignal &g, datetime now, double bid, double ask)
    double buf=MathMax(g.eps,spread);
    double atr5=g_s[SIG_M5].Atr();
    double e_m5=g_book.NearestAhead(g.dir,bid,false,now);
-   double e_dol=g_book.NearestDol(g.dir,bid,now);
    MqlDateTime dt; TimeToStruct(now,dt);
    int news=NewsFlag(now);
    int scen=(g.flip==0) ? 1 : (g.cont ? 5 : 2);
@@ -183,6 +182,7 @@ void HandleSignal(const SigSignal &g, datetime now, double bid, double ask)
       double r=(g.dir>0) ? ask-sl : sl-bid;
       if(r<=g_tick) continue;
       double e_htf=g_book.HtfTarget(g.dir,bid,ask,buf,r,now);
+      double e_dol=g_book.DolTarget(g.dir,bid,ask,buf,r,now);
       double k[3];
       k[SIG_T_HTF]=TargetK(g.dir,e_htf,bid,ask,buf,spread,r);
       k[SIG_T_M5]=TargetK(g.dir,e_m5,bid,ask,buf,spread,r);

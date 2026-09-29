@@ -230,6 +230,24 @@ void TestHtfTarget()
          DoubleToString(book.HtfTarget(-1,101.5,101.6,0.1,2.0,now),2));
   }
 
+// Đích DOL: bỏ đỉnh râu chưa bị quét cách giá vào dưới 1R (SPEC 23.4), lấy đỉnh kế tiếp.
+void TestDolTarget()
+  {
+   ScpSeries s; s.Init(SCP_TF_M15);
+   SigLevelBook book; book.Init(0.01,1,false);
+   long seen=0;
+   Base(s,book,seen,20);
+   Feed(s,book,seen,SIG_M15,Bar(20,900,100,106,99.8,101));          // đỉnh cao H=106
+   Feed(s,book,seen,SIG_M15,Bar(21,900,101,101.1,100.2,100.3));
+   for(int i=22;i<28;i++) Feed(s,book,seen,SIG_M15,Bar(i,900,100,100.5,99.5,100));
+   int next=BuildPivotHigh(s,book,seen,28);                          // đỉnh thấp H=102
+   datetime now=g_t0+(datetime)(next*900)+60;
+   double d5=book.DolTarget(1,100.3,100.4,0.1,5.0,now);
+   Check("DOL mua R=5: bỏ đỉnh 102 (0.3R), lấy đỉnh 106",Near(d5,106) && Near(book.NearestDol(1,100.3,now),102),
+         DoubleToString(d5,2)+" gần nhất="+DoubleToString(book.NearestDol(1,100.3,now),2));
+   Check("DOL mua R=1: đỉnh 102 (1.5R) đủ xa, giữ",Near(book.DolTarget(1,100.3,100.4,0.1,1.0,now),102));
+  }
+
 void TestDetector()
   {
    SigLevelBook book; book.Init(0.01,1,false);
@@ -291,6 +309,7 @@ void OnStart()
    TestGapDoji();
    TestTracker();
    TestHtfTarget();
+   TestDolTarget();
    TestDetector();
    TestPaperLimit();
    Print("[SIG_VERIFY] TOTAL ",g_pass+g_fail," | PASS ",g_pass," | FAIL ",g_fail);

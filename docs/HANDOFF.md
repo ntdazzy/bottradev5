@@ -26,7 +26,9 @@ K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo tr�
 - Đọc lượt 1 tuần (1 tuần, chưa kết luận): sau trượt gần như mọi biến thể −0,1 đến −0,3R ở 1R, gần mức ngẫu nhiên/cản giả.
   Lộ 2 lỗi, đã sửa (chủ bot đồng ý 29/09): (1) đích cản khung lớn quá sát giá vào (trung vị 0,03R) → lấy cản đầu tiên cách ≥ 1R (SPEC 23.4);
   (2) file quá nặng (`tin_hieu.csv` 81 MB/tuần, giữ mọi bản ghi trong bộ nhớ) → bản ghi xong được chia nhóm ngay rồi bỏ,
-  `tin_hieu.csv` chỉ ghi khi `InpWriteSignals=true`; tra nhóm bằng bảng băm. `SigVerify` 41/41. Hồ sơ đổi tên lượt: `siglab_2026h1_v3`, `siglab_2026h1_full_v2`.
+  `tin_hieu.csv` chỉ ghi khi `InpWriteSignals=true`; tra nhóm bằng bảng băm.
+  Sau đó chủ bot đồng ý áp cùng luật 1R cho đích DOL (DOL gần nhất trung vị 0,41R). `SigVerify` 43/43.
+  Hồ sơ đổi tên lượt: `siglab_2026h1_v4` (1 tuần), `siglab_2026h1_full_v3` (01–06). Chưa chạy lại máy thử sau hai bản sửa này.
 
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 
