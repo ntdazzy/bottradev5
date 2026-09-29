@@ -113,6 +113,13 @@ public:
          Add(v+"loai_can="+SigTypeName(f.ltype),x,with_slip);
          Add(v+"bac="+IntegerToString(f.tier),x,with_slip);
          Add(v+"trung_can="+(f.conf>=1?"co":"khong"),x,with_slip);
+         // Sức mạnh cản (SPEC 24.1).
+         Add(v+"so_can_trung="+SigConfBucket(f.conf),x,with_slip);
+         Add(v+"luc_bat="+SigDispBucket(f.disp),x,with_slip);
+         Add(v+"than_dong_luc="+SigBodyBucket(f.body_max),x,with_slip);
+         Add(v+"pha_cau_truc="+SigBosBucket(f.bos),x,with_slip);
+         Add(v+"do_lon_dinh="+SigRankBucket(f.rank),x,with_slip);
+         if(f.scen!=1) Add(v+"nen_pha="+SigBodyBucket(f.brk_body),x,with_slip);
          if(f.entry_mode==0) Add(v+"phan_ung="+SigReactionName(f.reaction),x,with_slip);
          if(f.entry_mode==0 && f.reaction<3) Add(v+"phan_ung_dong_vuot_mep_gan="+(f.strict?"co":"khong"),x,with_slip);
          Add(v+"khung_vao="+(f.etf==0?"M1":"M5"),x,with_slip);

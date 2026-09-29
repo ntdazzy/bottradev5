@@ -13,6 +13,10 @@
 #define SIG_DOJI_BODY_ATR 0.3 // doji/thân nhỏ: thân <= 0,3 ATR và <= 50% biên độ (SPEC 22.4, THỬ NGHIỆM)
 #define SIG_MOMO_BODY_ATR 0.6 // nến động lực: thân >= 0,6 ATR cùng chiều (SPEC 22.4, THỬ NGHIỆM)
 #define SIG_MIN_TARGET_R 1.0 // đích cản khung lớn và DOL phải cách giá vào ít nhất 1R sau đệm (SPEC 23.4)
+#define SIG_DISP_BARS   5     // lực bật: số nến khung nguồn sau nến gốc (SPEC 24.1, THỬ NGHIỆM)
+#define SIG_BOS_BARS    20    // phá cấu trúc: theo dõi tối đa số nến sau nến gốc, dừng khi có lần chạm đầu (SPEC 24.1)
+#define SIG_MOMO_FULL   0.6   // nến động lực: thân >= 60% biên độ (Rare SnR "thân dài"; ngưỡng ATR đo theo nhóm)
+#define SIG_RANK_CAP    500   // độ lớn đỉnh/đáy: đếm tối đa số nến bên trái
 
 enum ENUM_SIG_TF { SIG_M1=0, SIG_M5=1, SIG_M15=2, SIG_M30=3, SIG_H1=4, SIG_H4=5, SIG_D1=6, SIG_W1=7 };
 const ENUM_TIMEFRAMES SIG_PERIODS[SIG_TF_COUNT] =
@@ -116,7 +120,24 @@ struct SigLevel
    bool              ep_open[2][3];
    int               tests;       // số lần kiểm tra đã mở
    int               cur_test;    // số thứ tự lần kiểm tra đang mở (0 = lần đầu)
+   // Sức mạnh cản (SPEC 24.1). Cản giả chép số của cản thật gốc. -1 = không áp dụng (số tròn, đỉnh/đáy kỳ).
+   double            atr_src;     // ATR khung nguồn lúc tạo
+   long              origin_no;   // số thứ tự nến gốc trong khung nguồn
+   double            disp;        // lực bật: quãng giá rời mép gần trong SIG_DISP_BARS nến sau nến gốc (ATR nguồn)
+   double            body_max;    // thân lớn nhất theo chiều rời cản từ nến gốc tới hết SIG_DISP_BARS (ATR nguồn; thân >= 60% biên độ)
+   int               bos;         // số đỉnh/đáy đối diện (tối đa 2, gần nhất trước nến gốc) bị đóng vượt trước lần chạm đầu
+   int               bos_bits;
+   double            bos_p[2];
+   int               rank;        // số nến bên trái trước khi có đáy thấp hơn (hỗ trợ) / đỉnh cao hơn (kháng cự)
+   double            brk_body;    // bản đổi vai: thân nến phá theo chiều phá (ATR nguồn), 0 nếu thân < 60% biên độ
   };
+
+// Nhóm đo sức mạnh cản dùng chung cho báo cáo tín hiệu và báo cáo phản ứng tại cản (SPEC 24.3).
+string SigDispBucket(double d) { return d<0 ? "khong_ap_dung" : (d<1.0 ? "<1ATR" : (d<2.0 ? "1-2ATR" : (d<3.0 ? "2-3ATR" : ">=3ATR"))); }
+string SigBodyBucket(double b) { return b<0 ? "khong_ap_dung" : (b<1.0 ? "<1ATR" : (b<1.5 ? "1-1.5ATR" : ">=1.5ATR")); }
+string SigBosBucket(int b) { return b<0 ? "khong_ap_dung" : IntegerToString(b); }
+string SigRankBucket(int r) { return r<0 ? "khong_ap_dung" : (r<10 ? "<10" : (r<50 ? "10-50" : (r<200 ? "50-200" : ">=200"))); }
+string SigConfBucket(int c) { return c>=3 ? "3+" : IntegerToString(c); }
 
 class SigLevelBook
   {
@@ -132,6 +153,10 @@ private:
    long              m_round_keys[];
    int               m_round_n;
    int               m_log;       // file ghi sổ cản; INVALID_HANDLE thì không ghi
+   long              m_bar_no[SIG_TF_COUNT];    // số nến khung nguồn đã nhận (tăng mãi; chuỗi chỉ giữ 1.500 nến)
+   datetime          m_last_open[SIG_TF_COUNT];
+   ScpSeries        *m_cur_s;                   // chuỗi khung nguồn đang xét trong OnSourceBar (tính sức mạnh lúc tạo)
+   int               m_cur_tf;
    int               m_trend;     // chiều của tín hiệu K2 thật gần nhất (+1/-1), 0 chưa có
 
    void              Log(const SigLevel &z)
@@ -142,7 +167,8 @@ private:
                       DoubleToString(z.bottom,3)+";"+DoubleToString(z.top,3)+";"+
                       TimeToString(z.origin,TIME_DATE|TIME_MINUTES)+";"+TimeToString(z.known_at,TIME_DATE|TIME_MINUTES)+";"+
                       (z.dead_at>0?TimeToString(z.dead_at,TIME_DATE|TIME_MINUTES):"-")+";"+SigDeadName(z.dead_why)+";"+
-                      IntegerToString(z.tests)+"\r\n");
+                      IntegerToString(z.tests)+";"+DoubleToString(z.disp,2)+";"+DoubleToString(z.body_max,2)+";"+
+                      IntegerToString(z.bos)+";"+IntegerToString(z.rank)+";"+DoubleToString(z.brk_body,2)+"\r\n");
      }
 
    void              Kill(int i, datetime when, int why)
@@ -225,6 +251,7 @@ private:
       z.side0=(price_now>=(bottom+top)*0.5) ? 1 : -1;
       z.origin=origin; z.known_at=known; z.valid_until=valid_until; z.age_start=age_start;
       z.alive=true; z.fake=false; z.parent=0; z.swept=false;
+      InitStrength(z);
       if(Push(z)<0) return 0;
       m_created[z.group]++;
       AddFake(z,src_atr,price_now);
@@ -232,7 +259,7 @@ private:
      }
 
    // Doji SnR (SPEC 22.4): động lực c1 → 1–2 doji/thân nhỏ → động lực c3 cùng chiều đóng vượt cụm doji.
-   void              DetectDoji(int tf, ScpSeries *s, double atr, double price_now)
+   void              DetectDoji(int tf, ScpSeries *s, double atr, double price_now, int age)
      {
       int n=s.Count();
       if(n<5 || atr<=0) return;
@@ -261,13 +288,92 @@ private:
          // Tăng: hỗ trợ [đáy râu cụm doji, mốc]; giảm: kháng cự [mốc, đỉnh râu cụm doji].
          double lo=(dir>0) ? MathMin(dlo,level) : level;
          double hi=(dir>0) ? level : MathMax(dhi,level);
-         Add(tf,SIG_LV_DOJI,lo,hi,dir,true,c1.open_time,c3.known_at,0,atr,n,price_now,0);
+         Add(tf,SIG_LV_DOJI,lo,hi,dir,true,c1.open_time,c3.known_at,0,atr,age,price_now,0);
          return;
         }
      }
 
+   // Số thứ tự nến có chỉ số k trong chuỗi khung nguồn đang xét.
+   long              BarNoAt(int tf, ScpSeries *s, int k) { return m_bar_no[tf]-(s.Count()-1-k); }
+
+   // Thân nến theo chiều dir (ATR), 0 nếu ngược chiều hoặc thân < 60% biên độ.
+   double            MomoBody(const ScpBar &b, int dir, double atr)
+     {
+      double body=dir*(b.c-b.o), range=b.h-b.l;
+      if(atr<=0 || body<=0 || range<=0 || body<SIG_MOMO_FULL*range) return 0;
+      return body/atr;
+     }
+
+   // Cập nhật lực bật, thân động lực và phá cấu trúc của cản với nến k của chuỗi (k sau nến gốc).
+   void              StepStrength(SigLevel &z, ScpSeries *s, int k)
+     {
+      ScpBar b=s.Bar(k);
+      long d=BarNoAt(z.tf,s,k)-z.origin_no;
+      if(d<=SIG_DISP_BARS)
+        {
+         double away=(z.role>0) ? b.h-z.top : z.bottom-b.l;
+         if(z.atr_src>0) z.disp=MathMax(z.disp,away/z.atr_src);
+         z.body_max=MathMax(z.body_max,MomoBody(b,z.role,z.atr_src));
+        }
+      if(z.tests==0 && d<=SIG_BOS_BARS)
+         for(int j=0;j<2;j++)
+            if(z.bos_p[j]>0 && ((z.role>0 && b.c>z.bos_p[j]) || (z.role<0 && b.c<z.bos_p[j]))) z.bos_bits|=(1<<j);
+      z.bos=((z.bos_bits&1)!=0 ? 1 : 0)+((z.bos_bits&2)!=0 ? 1 : 0);
+     }
+
+   // Sức mạnh lúc tạo từ các nến đã có (SPEC 24.1). Chỉ cản có vai rõ của khung nguồn đang xét.
+   void              InitStrength(SigLevel &z)
+     {
+      z.atr_src=0; z.origin_no=0; z.disp=-1; z.body_max=-1; z.bos=-1; z.bos_bits=0; z.bos_p[0]=0; z.bos_p[1]=0;
+      z.rank=-1; z.brk_body=0;
+      ScpSeries *s=m_cur_s;
+      if(s==NULL || z.tf!=m_cur_tf || z.role==0 || z.type==SIG_LV_ROUND || z.type==SIG_LV_PD || z.type==SIG_LV_PW) return;
+      int n=s.Count(), k0=-1;
+      for(int k=n-1;k>=MathMax(0,n-1-SIG_LEVEL_AGE);k--) if(s.Bar(k).open_time==z.origin) { k0=k; break; }
+      if(k0<0) return;
+      z.atr_src=s.Atr();
+      z.origin_no=BarNoAt(z.tf,s,k0);
+      z.disp=0; z.body_max=MomoBody(s.Bar(k0),z.role,z.atr_src); z.bos=0;
+      // Hai đỉnh (hỗ trợ) / đáy (kháng cự) gần nhất trước nến gốc, nằm phía rời cản.
+      int got=0;
+      for(int i=s.PivotCount()-1;i>=0 && got<2;i--)
+        {
+         ScpPivot p=s.Pivot(i);
+         if(p.ambiguous || p.bar_time>=z.origin || p.is_high!=(z.role>0)) continue;
+         if((z.role>0 && p.price>z.top) || (z.role<0 && p.price<z.bottom)) z.bos_p[got++]=p.price;
+        }
+      for(int k=k0+1;k<n;k++) StepStrength(z,s,k);
+      // Độ lớn đỉnh/đáy: số nến bên trái trước khi có đáy thấp hơn mép xa (hỗ trợ) / đỉnh cao hơn (kháng cự).
+      z.rank=0;
+      for(int k=k0-1;k>=MathMax(0,k0-SIG_RANK_CAP);k--)
+        {
+         ScpBar b=s.Bar(k);
+         if((z.role>0 && b.l<z.bottom) || (z.role<0 && b.h>z.top)) break;
+         z.rank++;
+        }
+     }
+
+   // Nến nguồn mới đóng: cập nhật sức mạnh các cản thật của khung đó còn trong cửa sổ đo, chép sang cản giả con.
+   void              UpdateStrength(int tf, ScpSeries *s)
+     {
+      int k=s.Count()-1;
+      for(int i=0;i<m_n;i++)
+        {
+         if(m_lv[i].fake || m_lv[i].flip>0 || m_lv[i].tf!=tf || m_lv[i].disp<0 || !m_lv[i].alive) continue;
+         long d=m_bar_no[tf]-m_lv[i].origin_no;
+         if(d<1 || d>SIG_BOS_BARS) continue;
+         double d0=m_lv[i].disp, b0=m_lv[i].body_max;
+         int s0=m_lv[i].bos;
+         StepStrength(m_lv[i],s,k);
+         if(m_lv[i].disp==d0 && m_lv[i].body_max==b0 && m_lv[i].bos==s0) continue;
+         for(int j=0;j<m_n;j++)
+            if(m_lv[j].fake && m_lv[j].flip==0 && m_lv[j].parent==m_lv[i].id)
+              { m_lv[j].disp=m_lv[i].disp; m_lv[j].body_max=m_lv[i].body_max; m_lv[j].bos=m_lv[i].bos; }
+        }
+     }
+
    // Bản đổi vai của cản i sau khi bị phá (Rare SnR SBR/RBS): cùng hình học, vai ngược, mới ở phía kia.
-   void              AddFlip(int i, datetime known, int def)
+   void              AddFlip(int i, datetime known, int def, double brk)
      {
       for(int j=0;j<m_n;j++)
          if(m_lv[j].parent==m_lv[i].id && m_lv[j].flip==m_lv[i].flip+1 && m_lv[j].fake==m_lv[i].fake && m_lv[j].alive)
@@ -277,6 +383,7 @@ private:
       z.parent=m_lv[i].id;
       z.role=-m_lv[i].role;
       z.flip=m_lv[i].flip+1; z.flip_def=def; z.wick_broken=false;
+      z.brk_body=brk; // sức mạnh còn lại giữ của cản gốc
       z.cont=(m_trend!=0 && m_trend==z.role);
       // Giữ tuổi (age_start) của cản gốc: bản đổi vai hết hạn cùng lúc với cản gốc.
       z.known_at=known; z.alive=true; z.dead_at=0; z.dead_why=0;
@@ -294,6 +401,8 @@ public:
       ArrayInitialize(m_created,0);
       m_fake_created=0; m_broken=0; m_aged=0; m_dropped=0;
       m_round_n=0; m_trend=0;
+      ArrayInitialize(m_bar_no,0); ArrayInitialize(m_last_open,0);
+      m_cur_s=NULL; m_cur_tf=-1;
       ArrayResize(m_lv,0,4096); ArrayResize(m_round_keys,0,256);
      }
 
@@ -372,6 +481,9 @@ public:
       int n=s.Count();
       double atr=s.Atr();
       ScpBar last=s.Bar(n-1);
+      UpdateStrength(tf,s);
+      m_cur_s=s; m_cur_tf=tf;
+      int age=(int)m_bar_no[tf];
       for(int i=0;i<s.PivotCount();i++)
         {
          ScpPivot p=s.Pivot(i);
@@ -385,7 +497,7 @@ public:
             // Kháng cự [mép thân trên, đỉnh râu]; hỗ trợ [đáy râu, mép thân dưới].
             double lo=p.is_high ? MathMax(src.o,src.c) : src.l;
             double hi=p.is_high ? src.h : MathMin(src.o,src.c);
-            Add(tf,SIG_LV_PIVOT,lo,hi,p.is_high ? -1 : 1,true,src.open_time,p.known_at,0,atr,n,price_now,0);
+            Add(tf,SIG_LV_PIVOT,lo,hi,p.is_high ? -1 : 1,true,src.open_time,p.known_at,0,atr,age,price_now,0);
             // Classic A (đỉnh) / V (đáy) có nến pivot là c1 hoặc c2 (SPEC 23.2 L2; lọc đề xuất).
             if(tf!=SIG_M5)
                for(int c1i=b-1;c1i<=b;c1i++)
@@ -393,27 +505,27 @@ public:
                   if(c1i<0 || c1i+1>=n) continue;
                   ScpBar c1=s.Bar(c1i), c2=s.Bar(c1i+1);
                   if(p.is_high && c1.c>c1.o && c2.c<c2.o)
-                     Add(tf,SIG_LV_CLASSIC,c1.c,MathMax(c1.h,c2.h),-1,false,c1.open_time,p.known_at,0,atr,n,price_now,0,c1.c);
+                     Add(tf,SIG_LV_CLASSIC,c1.c,MathMax(c1.h,c2.h),-1,false,c1.open_time,p.known_at,0,atr,age,price_now,0,c1.c);
                   if(!p.is_high && c1.c<c1.o && c2.c>c2.o)
-                     Add(tf,SIG_LV_CLASSIC,MathMin(c1.l,c2.l),c1.c,1,false,c1.open_time,p.known_at,0,atr,n,price_now,0,c1.c);
+                     Add(tf,SIG_LV_CLASSIC,MathMin(c1.l,c2.l),c1.c,1,false,c1.open_time,p.known_at,0,atr,age,price_now,0,c1.c);
                  }
             break;
            }
         }
-      if(tf==SIG_M5) return; // cản tạm M5 chỉ dùng vùng đỉnh/đáy
-      DetectDoji(tf,s,atr,price_now);
+      if(tf==SIG_M5) { m_cur_s=NULL; return; } // cản tạm M5 chỉ dùng vùng đỉnh/đáy
+      DetectDoji(tf,s,atr,price_now,age);
       // Gap SnR: hai nến cùng màu, ít nhất một nến thân >= 0,6 ATR (lọc đề xuất); mức C(c1), vùng [LL, UL] (SPEC 23.2 L3).
       ScpBar g1=s.Bar(n-2), g2=s.Bar(n-1);
       bool strong=(MathAbs(g1.c-g1.o)>=SIG_MOMO_BODY_ATR*atr || MathAbs(g2.c-g2.o)>=SIG_MOMO_BODY_ATR*atr);
       if(strong && g1.c<g1.o && g2.c<g2.o)
-         Add(tf,SIG_LV_GAP,g1.l,MathMax(g2.h,g1.c),-1,false,g1.open_time,g2.known_at,0,atr,n,price_now,0,g1.c);
+         Add(tf,SIG_LV_GAP,g1.l,MathMax(g2.h,g1.c),-1,false,g1.open_time,g2.known_at,0,atr,age,price_now,0,g1.c);
       if(strong && g1.c>g1.o && g2.c>g2.o)
-         Add(tf,SIG_LV_GAP,MathMin(g2.l,g1.c),g1.h,1,false,g1.open_time,g2.known_at,0,atr,n,price_now,0,g1.c);
+         Add(tf,SIG_LV_GAP,MathMin(g2.l,g1.c),g1.h,1,false,g1.open_time,g2.known_at,0,atr,age,price_now,0,g1.c);
       // FVG ba nến, nến giữa cùng chiều khoảng trống, bề rộng tối thiểu.
       ScpBar a=s.Bar(n-3), mid=s.Bar(n-2), c=s.Bar(n-1);
       double min_w=MathMax(2.0*m_tick,SCP_K_BUFFER*atr);
-      if(c.l>a.h && mid.c>mid.o && c.l-a.h>=min_w) Add(tf,SIG_LV_FVG,a.h,c.l,1,false,a.open_time,c.known_at,0,atr,n,price_now,0);
-      if(c.h<a.l && mid.c<mid.o && a.l-c.h>=min_w) Add(tf,SIG_LV_FVG,c.h,a.l,-1,false,a.open_time,c.known_at,0,atr,n,price_now,0);
+      if(c.l>a.h && mid.c>mid.o && c.l-a.h>=min_w) Add(tf,SIG_LV_FVG,a.h,c.l,1,false,a.open_time,c.known_at,0,atr,age,price_now,0);
+      if(c.h<a.l && mid.c<mid.o && a.l-c.h>=min_w) Add(tf,SIG_LV_FVG,c.h,a.l,-1,false,a.open_time,c.known_at,0,atr,age,price_now,0);
       // OB: nến đóng phá đỉnh/đáy đã biết → nến ngược chiều cuối trong 20 nến trước; phá lên tạo OB hỗ trợ.
       double hi=s.LastPivotPrice(true), lo=s.LastPivotPrice(false);
       double eps=SCP_K_BUFFER*s.AtrAt(n-2);
@@ -425,8 +537,9 @@ public:
            {
             ScpBar ob=s.Bar(k);
             if((dir>0 && ob.c<ob.o) || (dir<0 && ob.c>ob.o))
-              { Add(tf,SIG_LV_OB,ob.l,ob.h,dir,false,ob.open_time,last.known_at,0,atr,n,price_now,0); break; }
+              { Add(tf,SIG_LV_OB,ob.l,ob.h,dir,false,ob.open_time,last.known_at,0,atr,age,price_now,0); break; }
            }
+      m_cur_s=NULL;
      }
 
    // Cản của khung nguồn hết hiệu lực: nến khung đó đóng vượt mép xa thêm eps, hoặc quá tuổi.
@@ -436,6 +549,9 @@ public:
       ScpBar b=s.LastBar();
       double eps=SCP_K_BUFFER*s.Atr();
       int n=s.Count();
+      // Đếm nến nguồn mới (tăng mãi): tuổi cản không phụ thuộc số nến chuỗi còn giữ (tối đa 1.500).
+      for(int k=n-1;k>=0 && s.Bar(k).open_time>m_last_open[tf];k--) m_bar_no[tf]++;
+      m_last_open[tf]=b.open_time;
       for(int i=0;i<m_n;i++)
         {
          if(!m_lv[i].alive || m_lv[i].tf!=tf) continue;
@@ -447,7 +563,7 @@ public:
                           m_lv[i].type==SIG_LV_DOJI));
          if((side>0 && b.c<m_lv[i].bottom-eps) || (side<0 && b.c>m_lv[i].top+eps))
            {
-            if(flippable && m_lv[i].known_at<=b.open_time) AddFlip(i,b.known_at,1);
+            if(flippable && m_lv[i].known_at<=b.open_time) AddFlip(i,b.known_at,1,MomoBody(b,-side,s.Atr()));
             Kill(i,b.close_time,1);
             continue;
            }
@@ -455,9 +571,9 @@ public:
             ((side>0 && b.l<m_lv[i].bottom-eps) || (side<0 && b.h>m_lv[i].top+eps)))
            {
             m_lv[i].wick_broken=true;
-            AddFlip(i,b.known_at,2);
+            AddFlip(i,b.known_at,2,MomoBody(b,-side,s.Atr()));
            }
-         if(n-m_lv[i].age_start>SIG_LEVEL_AGE) Kill(i,b.close_time,2);
+         if(m_bar_no[tf]-m_lv[i].age_start>SIG_LEVEL_AGE) Kill(i,b.close_time,2);
         }
      }
 

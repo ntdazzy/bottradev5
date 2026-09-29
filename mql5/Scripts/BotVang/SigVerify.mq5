@@ -7,6 +7,7 @@
 #include <BotVang\SigLevels.mqh>
 #include <BotVang\SigDetect.mqh>
 #include <BotVang\SigTrack.mqh>
+#include <BotVang\SigProbe.mqh>
 
 input bool InpCloseTerminal = false;
 
@@ -102,6 +103,24 @@ void TestLevels()
    int flips=0;
    for(int i=0;i<book.Count();i++) { SigLevel q; if(book.Get(i,q) && q.type==SIG_LV_PIVOT && q.flip==1 && q.role==1) { flips++; f=q; } }
    Check("Phá bằng thân: đúng 1 bản đổi vai, def=3",flips==1 && f.flip_def==3,"flips="+(string)flips+" def="+(string)f.flip_def);
+  }
+
+// Lỗi 29/09 (đọc mã): tuổi cản tính theo số nến trong bộ nhớ chuỗi (tối đa 1.500); khi đầy, số này đứng yên
+// nên cản tạo sau đó không bao giờ hết tuổi (SPEC 23.2: hết hạn sau 200 nến nguồn).
+void TestAgeAfterFull()
+  {
+   ScpSeries s; s.Init(SCP_TF_M15);
+   SigLevelBook book; book.Init(0.01,1,false);
+   long seen=0;
+   Base(s,book,seen,1600);
+   int next=BuildPivotHigh(s,book,seen,1600);
+   SigLevel z;
+   int ip=FindLevel(book,SIG_LV_PIVOT,0,z,-1);
+   bool alive0=(ip>=0 && z.alive);
+   for(int i=0;i<SIG_LEVEL_AGE+5;i++) Feed(s,book,seen,SIG_M15,Bar(next+i,900,100,100.5,99.5,100));
+   ip=FindLevel(book,SIG_LV_PIVOT,0,z,-1);
+   Check("Cản hết tuổi sau 200 nến kể cả khi chuỗi đã đầy 1.500 nến",alive0 && ip>=0 && !z.alive && z.dead_why==2,
+         "tạo="+(string)alive0+" còn="+(string)(ip>=0 && z.alive)+" lý do="+(string)z.dead_why);
   }
 
 // Lỗi 29/09 (chạy máy thử thật): nến vừa có râu dưới xuyên hỗ trợ đổi vai vừa đóng phá lên kháng cự
@@ -301,15 +320,106 @@ void TestPaperLimit()
    Check("Chờ trên giấy: chỉ khớp một lần mỗi lần chạm",n==0 && det.LimitFills()==1);
   }
 
+// Sức mạnh cản (SPEC 24.1): đỉnh có nến động lực giảm phá đáy trước đó; cản giả chép số; bản đổi vai ghi thân nến phá.
+void TestStrength()
+  {
+   ScpSeries s; s.Init(SCP_TF_M15);
+   SigLevelBook book; book.Init(0.01,7,true);
+   long seen=0;
+   Base(s,book,seen,20);
+   Feed(s,book,seen,SIG_M15,Bar(20,900,100,100.2,98.5,99.8));       // đáy 98.5
+   for(int i=21;i<27;i++) Feed(s,book,seen,SIG_M15,Bar(i,900,100,100.5,99.5,100));
+   Feed(s,book,seen,SIG_M15,Bar(27,900,100,102,99.8,101));          // đỉnh 102, vùng [101, 102]
+   Feed(s,book,seen,SIG_M15,Bar(28,900,101,101.1,98.0,98.2));       // nến động lực giảm, đóng dưới đáy 98.5
+   Feed(s,book,seen,SIG_M15,Bar(29,900,98.2,98.6,97.9,98.3));
+   Feed(s,book,seen,SIG_M15,Bar(30,900,98.3,98.6,97.9,98.3));       // xác nhận đỉnh
+   SigLevel z, g;
+   ZeroMemory(z); ZeroMemory(g);
+   int ip=-1, ig=-1;
+   for(int i=0;i<book.Count();i++)
+     {
+      SigLevel q;
+      if(!book.Get(i,q) || q.type!=SIG_LV_PIVOT || q.flip!=0 || q.role!=-1) continue;
+      if(!q.fake) { ip=i; z=q; } else { ig=i; g=q; }
+     }
+   Check("Sức mạnh: có cản đỉnh thật và cản giả",ip>=0 && ig>=0);
+   if(ip<0 || ig<0) return;
+   Check("Lực bật >= 2 ATR, thân động lực >= 1,5 ATR",z.disp>=2.0 && z.body_max>=1.5,
+         "bật="+DoubleToString(z.disp,2)+" thân="+DoubleToString(z.body_max,2));
+   Check("Phá cấu trúc: đóng dưới đáy trước đó",z.bos>=1,"bos="+(string)z.bos);
+   Check("Độ lớn đỉnh: cao nhất 27 nến bên trái",z.rank==27,"rank="+(string)z.rank);
+   Check("Cản giả chép sức mạnh của cản thật lúc tạo",g.disp==z.disp && g.body_max==z.body_max && g.bos==z.bos && g.rank==z.rank);
+   double d0=z.disp;
+   Feed(s,book,seen,SIG_M15,Bar(31,900,98.3,98.4,96.0,96.2));       // nến thứ 4 sau gốc: bật thêm
+   book.Get(ip,z); book.Get(ig,g);
+   Check("Lực bật cập nhật trong 5 nến sau gốc, cản giả chép theo",z.disp>d0 && g.disp==z.disp,
+         DoubleToString(d0,2)+" → "+DoubleToString(z.disp,2)+" giả="+DoubleToString(g.disp,2));
+   Feed(s,book,seen,SIG_M15,Bar(32,900,96.2,103,96.1,102.8));       // nến động lực tăng đóng trên đỉnh: đổi vai
+   SigLevel f;
+   ZeroMemory(f);
+   int iflip=-1;
+   for(int i=0;i<book.Count();i++) { SigLevel q; if(book.Get(i,q) && !q.fake && q.type==SIG_LV_PIVOT && q.flip==1 && q.parent==z.id) { iflip=i; f=q; } }
+   Check("Bản đổi vai ghi thân nến phá >= 1,5 ATR",iflip>=0 && f.brk_body>=1.5,iflip>=0 ? DoubleToString(f.brk_body,2) : "không có");
+  }
+
+// Hai cản chồng nhau phản ứng cùng nến: chỉ giữ một tín hiệu vào thị trường, của cản khung lớn hơn (SPEC 24.2).
+void TestMerge()
+  {
+   SigLevelBook book; book.Init(0.01,1,false);
+   ScpSeries m1; m1.Init(SCP_TF_M1);
+   ScpSeries m5; m5.Init(SCP_TF_M5);
+   for(int i=0;i<20;i++) { m1.PushBar(Bar(i,60,101.5,102,101,101.5)); m5.PushBar(Bar(i,300,101.5,102,101,101.5)); }
+   book.EnsureRound(101.5,g_t0);                                     // số tròn $100 (bậc 3)
+   book.AddPeriodExtremes(SIG_LV_PD,Bar(-1,86400,105,110,99.95,106),5.0,101.5); // đáy ngày trước 99.95 (bậc 2)
+   int near[]; int nn=book.Near(101.5,5.0,g_t0+1200,near);
+   SigDetector det; det.Init(3);
+   m1.PushBar(Bar(20,60,101.5,102,101,101.5));
+   det.OnEntryBarClosed(0,GetPointer(m1),book,near,nn,0.01);
+   det.OnTick(book,near,nn,99.98,g_t0+(datetime)(21*60+10),GetPointer(m1),GetPointer(m5),0.01,false,true,false);
+   SigSignal sg[];
+   det.Take(sg);                                                     // bỏ lệnh chờ trên giấy lúc chạm
+   m1.PushBar(Bar(21,60,100.5,100.65,99.9,100.6));
+   det.OnEntryBarClosed(0,GetPointer(m1),book,near,nn,0.01);
+   int n=det.Take(sg), mk=0, kept=-1;
+   for(int i=0;i<n;i++) if(sg[i].reaction!=SCP_RE_NONE) { mk++; kept=i; }
+   Check("Gộp tín hiệu: 2 cản chồng nhau chỉ còn 1 tín hiệu, của cản bậc cao hơn (số tròn $100)",
+         mk==1 && sg[kept].merged==1 && sg[kept].group==SIG_G_R100 && det.Merged()==1,
+         "tín hiệu="+(string)mk+(kept>=0?" gộp="+(string)sg[kept].merged+" nhóm="+SigGroupName(sg[kept].group):""));
+  }
+
+// Phản ứng tại cản (SPEC 24.3): không tính đỉnh nến M1 lúc chạm; bật 2,6 ATR rồi bị phá.
+void TestProbe()
+  {
+   SigProbeBook pb; pb.Init();
+   SigTouch t;
+   ZeroMemory(t);
+   t.level_id=1; t.time=g_t0+30; t.dir=1; t.near=100; t.far=99; t.eps=0.05; t.group=3; t.type=SIG_LV_PIVOT;
+   t.atr_src=2.0; t.disp=-1; t.body_max=-1; t.bos=-1; t.rank=-1;
+   pb.Open(t,100.0,1.0);
+   pb.OnTick(100.5);
+   pb.OnM1Close(Bar(0,60,104,105,99.8,100.4));                      // nến lúc chạm: đỉnh 105 có trước lúc chạm, không tính
+   pb.OnM1Close(Bar(1,60,100.4,102.6,100.2,102.0));                 // bật 2,6
+   pb.OnM5Close(Bar(1,300,102,102.1,98.5,98.6),0.1);                // đóng dưới 99 - 0.1: bị phá
+   SigProbeAcc a;
+   bool ok=pb.Acc("tat_ca",a);
+   Check("Phản ứng tại cản: bật >= 2 ATR, chưa tới 4, không tính nến lúc chạm, bị phá",
+         ok && a.n[0]==1 && a.hit[0][1]==1 && a.hit[0][2]==0 && a.brk[0]==1 && pb.OpenCount()==0,
+         ok ? "n="+(string)a.n[0]+" >=2:"+(string)a.hit[0][1]+" >=4:"+(string)a.hit[0][2]+" phá:"+(string)a.brk[0] : "không có nhóm");
+  }
+
 void OnStart()
   {
    TestLevels();
    TestFlipChain();
    TestFlipOscillation();
+   TestAgeAfterFull();
    TestGapDoji();
    TestTracker();
    TestHtfTarget();
    TestDolTarget();
+   TestStrength();
+   TestMerge();
+   TestProbe();
    TestDetector();
    TestPaperLimit();
    Print("[SIG_VERIFY] TOTAL ",g_pass+g_fail," | PASS ",g_pass," | FAIL ",g_fail);

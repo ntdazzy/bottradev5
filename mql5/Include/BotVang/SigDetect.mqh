@@ -26,6 +26,9 @@ struct SigEpisode
    int               flip, flip_def;
    bool              wick_broken, cont;
    bool              limit_done;   // lệnh chờ trên giấy tại mốc đã khớp (chỉ để so sánh, SPEC 23.1)
+   int               ltier;        // bậc cản trước khi xét trùng cản
+   double            disp, body_max, brk_body;
+   int               bos, rank;
   };
 
 struct SigSignal
@@ -45,6 +48,24 @@ struct SigSignal
    bool              fake, minor, wick;
    int               flip, flip_def;
    bool              wick_broken, cont;
+   double            lo, hi;       // dải cản lúc chạm (gộp tín hiệu trùng)
+   int               ltier;
+   double            disp, body_max, brk_body;
+   int               bos, rank;
+   int               merged;       // số tín hiệu cùng lúc ở cản chồng lên bị gộp vào tín hiệu này (SPEC 24.2)
+  };
+
+// Lần chạm mới của một cản (mọi khung vào/kiểu mốc dùng chung): dùng đo phản ứng tại cản, không phụ thuộc cách vào (SPEC 24.3).
+struct SigTouch
+  {
+   long              level_id;
+   datetime          time;
+   int               dir;
+   double            near, far, eps;
+   int               group, type, flip, test_no, conf, ltier;
+   bool              fake;
+   double            atr_src, disp, body_max, brk_body;
+   int               bos, rank;
   };
 
 class SigDetector
@@ -54,6 +75,9 @@ private:
    int               m_n;
    SigSignal         m_out[];
    int               m_out_n;
+   SigTouch          m_tch[];
+   int               m_tch_n;
+   int               m_merged;
    int               m_react_bars;
    int               m_touch, m_broken, m_expired, m_reacted, m_minor_rejected, m_limit;
 
@@ -100,6 +124,8 @@ private:
       g.tier=m_ep[k].tier; g.conf=m_ep[k].conf; g.group=m_ep[k].group; g.type=m_ep[k].type;
       g.test_no=m_ep[k].test_no; g.fake=m_ep[k].fake; g.minor=m_ep[k].minor; g.wick=m_ep[k].wick;
       g.flip=m_ep[k].flip; g.flip_def=m_ep[k].flip_def; g.cont=m_ep[k].cont;
+      g.lo=m_ep[k].lo; g.hi=m_ep[k].hi; g.ltier=m_ep[k].ltier;
+      g.disp=m_ep[k].disp; g.body_max=m_ep[k].body_max; g.brk_body=m_ep[k].brk_body; g.bos=m_ep[k].bos; g.rank=m_ep[k].rank;
       int li=book.IndexOf(m_ep[k].level_id);
       SigLevel cur;
       g.wick_broken=(li>=0 && book.Get(li,cur)) ? cur.wick_broken : m_ep[k].wick_broken;
@@ -113,7 +139,8 @@ public:
      {
       m_n=0; m_out_n=0; m_react_bars=react_bars;
       m_touch=0; m_broken=0; m_expired=0; m_reacted=0; m_minor_rejected=0; m_limit=0;
-      ArrayResize(m_ep,0,256); ArrayResize(m_out,0,64);
+      m_tch_n=0; m_merged=0;
+      ArrayResize(m_ep,0,256); ArrayResize(m_out,0,64); ArrayResize(m_tch,0,64);
      }
 
    int               Touches() { return m_touch; }
@@ -122,6 +149,7 @@ public:
    int               Reacted() { return m_reacted; }
    int               MinorRejected() { return m_minor_rejected; }
    int               LimitFills() { return m_limit; }
+   int               Merged() { return m_merged; }
    int               ActiveCount() { return m_n; }
 
    // Mỗi báo giá: mở lần chạm mới trên các cản gần, cập nhật cực trị các lần chạm đang mở.
@@ -167,6 +195,7 @@ public:
                book.SetArm(idx,etf,v,0); // mở lại cần một nến khung vào đóng hoàn toàn ngoài dải
                bool minor=(lv.group==SIG_G_M5TAM);
                if(minor && (!use_minor || !MinorOk(m5,side,bid))) { m_minor_rejected++; continue; }
+               bool new_test=!book.AnyOpen(idx);
                int test_no=book.BeginTest(idx);
                if(m_n>=ArraySize(m_ep)) ArrayResize(m_ep,m_n+256);
                SigEpisode e;
@@ -182,7 +211,19 @@ public:
                e.group=lv.group; e.type=lv.type; e.test_no=test_no;
                e.fake=lv.fake; e.minor=minor; e.wick=lv.wick;
                e.flip=lv.flip; e.flip_def=lv.flip_def; e.wick_broken=lv.wick_broken; e.cont=lv.cont;
+               e.ltier=lv.tier; e.disp=lv.disp; e.body_max=lv.body_max; e.brk_body=lv.brk_body; e.bos=lv.bos; e.rank=lv.rank;
                m_ep[m_n++]=e;
+               if(new_test)
+                 {
+                  if(m_tch_n>=ArraySize(m_tch)) ArrayResize(m_tch,m_tch_n+64);
+                  SigTouch t;
+                  ZeroMemory(t);
+                  t.level_id=lv.id; t.time=now; t.dir=side; t.near=nearp; t.far=farp; t.eps=eps;
+                  t.group=lv.group; t.type=lv.type; t.flip=lv.flip; t.test_no=test_no; t.conf=e.conf; t.ltier=lv.tier;
+                  t.fake=lv.fake; t.atr_src=lv.atr_src; t.disp=lv.disp; t.body_max=lv.body_max; t.brk_body=lv.brk_body;
+                  t.bos=lv.bos; t.rank=lv.rank;
+                  m_tch[m_tch_n++]=t;
+                 }
                book.SetEpOpen(idx,etf,v,true);
                m_touch++;
                if((side>0 && bid<=trig) || (side<0 && bid>=trig))
@@ -254,13 +295,61 @@ public:
         }
      }
 
+   // Tín hiệu a được giữ thay b khi gộp: cản khung lớn hơn, rồi lần chạm sớm hơn, rồi lực bật lớn hơn, rồi mã nhỏ hơn.
+   bool              Better(const SigSignal &a, const SigSignal &b)
+     {
+      if(a.ltier!=b.ltier) return a.ltier>b.ltier;
+      if(a.test_no!=b.test_no) return a.test_no<b.test_no;
+      if(a.disp!=b.disp) return a.disp>b.disp;
+      return a.level_id<b.level_id;
+     }
+
    // Lấy các tín hiệu vừa phát; bên gọi xử lý ngay ở báo giá hiện tại.
+   // Tín hiệu vào thị trường phát cùng lúc, cùng chiều/khung vào/kiểu mốc, cùng lớp thật/giả, ở các cản có dải chồng nhau
+   // chỉ giữ một (SPEC 24.2). Lệnh chờ trên giấy giữ nguyên từng cản.
    int               Take(SigSignal &out[])
      {
       int n=m_out_n;
+      // Xếp từ mạnh tới yếu rồi giữ lần lượt: tín hiệu chồng lên một tín hiệu đã giữ thì gộp vào đó.
+      int ord[];
+      ArrayResize(ord,n);
+      for(int i=0;i<n;i++)
+        {
+         int p=i;
+         while(p>0 && Better(m_out[i],m_out[ord[p-1]])) { ord[p]=ord[p-1]; p--; }
+         ord[p]=i;
+        }
+      int k=0;
       ArrayResize(out,n);
-      for(int i=0;i<n;i++) out[i]=m_out[i];
+      for(int q=0;q<n;q++)
+        {
+         SigSignal g=m_out[ord[q]];
+         bool merged=false;
+         if(g.reaction!=SCP_RE_NONE)
+            for(int j=0;j<k && !merged;j++)
+              {
+               if(out[j].reaction==SCP_RE_NONE || out[j].fake!=g.fake || out[j].dir!=g.dir || out[j].etf!=g.etf ||
+                  out[j].var!=g.var || out[j].bar_close!=g.bar_close) continue;
+               double e=MathMax(out[j].eps,g.eps);
+               if(g.lo-e>out[j].hi+e || out[j].lo-e>g.hi+e) continue;
+               out[j].merged++;
+               m_merged++;
+               merged=true;
+              }
+         if(!merged) out[k++]=g;
+        }
+      ArrayResize(out,k);
       m_out_n=0;
+      return k;
+     }
+
+   // Lấy các lần chạm mới (đo phản ứng tại cản).
+   int               TakeTouches(SigTouch &out[])
+     {
+      int n=m_tch_n;
+      ArrayResize(out,n);
+      for(int i=0;i<n;i++) out[i]=m_tch[i];
+      m_tch_n=0;
       return n;
      }
   };

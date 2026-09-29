@@ -1238,3 +1238,46 @@ LEVEL 2 = C. Lần quay lại đầu tới LEVEL 2 → phản ứng M1/M5 → v�
 - Làm theo đợt: đợt 1 = sổ cản L1–L4, L6, DOL + K1, K2(a), K5; đợt 2 = L5 + K2(b), K3; đợt 3 = K4.
 - Một tổ hợp chỉ được đưa vào EA khi trên 01–06/2026: R trung bình sau chi phí > 0 và hơn cả vào ngẫu nhiên lẫn cản giả,
   khoảng tin cậy 95% không chứa 0; rồi kiểm một lần trên 07–09/2026 vẫn > 0. Không chỉnh luật sau khi xem 07–09.
+
+## 24. Sức mạnh cản và phản ứng tại cản (chủ bot duyệt 29/09/2026)
+
+**Trạng thái:** đã có trong công cụ đo `ScpSignalLab`; **chưa có số liệu**. Lý do: lượt 1 tuần (05–12/01/2026) cho thấy tín hiệu ở cản thật
+≈ vào ngẫu nhiên ≈ cản giả; sổ cản nhận mọi đỉnh/đáy, mọi cặp gap… mà không phân biệt cản mạnh/yếu (~4.500 cản mới/tuần).
+Chủ bot chọn 4 tiêu chí; ngưỡng lấy từ 4 tài liệu khi có, còn lại [THỬ NGHIỆM] và báo cáo chia nhóm để đo. Chưa dùng làm bộ lọc.
+
+### 24.1 Đặc điểm sức mạnh của mỗi cản
+
+| Tiêu chí | Cách tính | Nhóm báo cáo | Nguồn |
+|---|---|---|---|
+| Lực bật | Quãng giá rời mép gần xa nhất trong 5 nến nguồn sau nến gốc, chia ATR nguồn lúc tạo | <1, 1–2, 2–3, ≥3 ATR | Rare SnR tr.7, 10, 21 (nến động lực); Unicorn (dịch chuyển mạnh) |
+| Thân động lực | Thân lớn nhất theo chiều rời cản, từ nến gốc tới hết 5 nến sau; chỉ nến thân ≥ 60% biên độ; chia ATR nguồn | <1, 1–1,5, ≥1,5 ATR | Rare SnR "thân dài" (không có ngưỡng) |
+| Phá cấu trúc | Hai đỉnh (với hỗ trợ) / đáy (với kháng cự) gần nhất trước nến gốc, nằm phía rời cản; đếm số mức bị giá đóng vượt trong 20 nến sau gốc và trước lần chạm đầu | 0, 1, 2 | 411 phần 1 (phá B rồi A); Unicorn |
+| Cản trùng | Số cản khác khung/loại (M15 trở lên) có dải chồng lên lúc chạm | 0, 1, 2, 3+ | Rare SnR tr.20; Unicorn (breaker ∩ FVG) |
+| Độ lớn đỉnh/đáy | Số nến bên trái trước khi có đáy thấp hơn mép xa (hỗ trợ) / đỉnh cao hơn (kháng cự), tối đa 500 | <10, 10–50, 50–200, ≥200 | Vị trí: đỉnh/đáy lớn hay đỉnh/đáy vặt |
+| Độ mới | Lần chạm thứ mấy | 1, 2, 3+ | Rare SnR tr.4, 8–9; 411 tr.5 |
+| Nến phá (bản đổi vai) | Thân nến phá theo chiều phá, cách tính như thân động lực | như thân động lực | Rare SnR tr.3–7 (nến động lực lật mức) |
+
+- Không nhìn trước: chỉ dùng nến đã đóng tới lúc chạm; lực bật và phá cấu trúc cập nhật dần sau khi cản được biết.
+- Số tròn, đỉnh/đáy ngày-tuần trước: không áp dụng. Bản đổi vai giữ đặc điểm của cản gốc và thêm nến phá.
+- Cản giả chép đặc điểm của cản thật gốc: so cùng đặc điểm, khác vị trí giá.
+- Không có điểm tổng hay trọng số (tài liệu không có); chọn tiêu chí sau khi đo.
+
+### 24.2 Gộp tín hiệu ở cản chồng nhau
+
+- Giữ từng cản như cũ (mép vùng, dừng lỗ không đổi).
+- Các tín hiệu vào thị trường phát ở cùng nến phản ứng, cùng chiều, khung vào, kiểu mốc, cùng lớp thật/giả, có dải chồng nhau (± đệm)
+  chỉ giữ một: bậc cản cao hơn → lần chạm sớm hơn → lực bật lớn hơn. Ghi số tín hiệu đã gộp. Lệnh chờ trên giấy không gộp.
+
+### 24.3 Đo phản ứng tại cản (không phụ thuộc cách vào lệnh)
+
+- Mỗi lần chạm mới của một cản: theo dõi giá bật xa nhất khỏi mép gần theo chiều cản; kết thúc khi nến M5 đóng qua mép xa + đệm (bị phá)
+  hoặc sau 240 phút. Nến M1 lúc chạm tính theo tick (bỏ phần giá trước lúc chạm), sau đó theo đỉnh/đáy nến M1.
+- Báo cáo `phan_ung_can.csv` theo từng đặc điểm ở 24.1 và theo nhóm/loại cản: % lần chạm bật ≥ 1/2/4 ATR M5 trước khi bị phá, % bị phá,
+  quãng bật trung bình; so với cản giả cùng đặc điểm.
+- Một tiêu chí được coi là "tạo ra cản mạnh" khi trên 01–06/2026 nhóm mạnh bật ≥ 2 ATR M5 nhiều hơn rõ nhóm yếu **và** hơn cản giả cùng nhóm,
+  với đủ mẫu. Chỉ khi đó mới dùng làm bộ lọc cho K1/K2, và vẫn phải qua nghiệm thu mục 23.5.
+
+### 24.4 Sửa lỗi tuổi cản (29/09)
+
+- Tuổi 200 nến (mục 23.2) tính theo số nến nguồn đã nhận, tăng mãi. Trước khi sửa, tuổi tính theo số nến chuỗi còn giữ (tối đa 1.500):
+  khi chuỗi đầy, cản M5/M15/M30/H1 tạo sau đó không bao giờ hết tuổi, chỉ chết khi bị phá, nên sổ cản dày dần theo thời gian.

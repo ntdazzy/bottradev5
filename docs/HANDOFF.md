@@ -32,6 +32,11 @@ K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo tr�
 - Lượt `siglab_2026h1_v4` (chủ bot, cùng tuần): mọi bộ đếm và kết quả đích cố định 1R/1,5R/2R/3R trùng hệt v2; chạy 1 phút 58 giây, 221 MB.
   Mọi tín hiệu thật đều có đích cản khung lớn và DOL ≥ 1R; cản khung lớn trung vị 1,08R (p90 1,39R) vì sổ cản dày, DOL trung vị 1,38R.
   1 tuần, chưa kết luận: thật ≈ ngẫu nhiên ≈ cản giả (−0,11 đến −0,23R sau trượt); đánh ngược nhỉnh hơn thật ở mọi đích.
+- Chủ bot: tìm cản là phần then chốt; phải phân biệt cản mạnh/yếu theo tài liệu. Đã làm SPEC mục 24 (chưa có số liệu):
+  mỗi cản ghi lực bật, thân động lực, phá cấu trúc, cản trùng, độ lớn đỉnh/đáy, độ mới, nến phá; gộp tín hiệu ở cản chồng nhau;
+  đo riêng phản ứng tại cản (`phan_ung_can.csv`), so cản giả cùng đặc điểm. Sửa lỗi tuổi cản: sau khi chuỗi đầy 1.500 nến,
+  cản M5/M15/M30/H1 không bao giờ hết tuổi (có ca tái hiện, trượt trước khi sửa). `SigVerify` 53/53.
+  Hồ sơ: `siglab_2026h1_v5` (1 tuần), `siglab_2026h1_full_v4` (01–06). Đang làm song song đợt 2 (vùng Z 411, Unicorn).
 
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 

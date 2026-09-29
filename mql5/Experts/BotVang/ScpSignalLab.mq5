@@ -1,7 +1,9 @@
 // ScpSignalLab.mq5 — công cụ đo tín hiệu HTF-ZONE (SPEC mục 22.3, 23). CHỈ chạy trong máy thử; không có lệnh gửi.
 // Đợt 1: cản L1–L4, L6, DOL; kịch bản K1 (đảo chiều ở cản mới), K2 (phá rồi quay lại, đổi vai), K5 (tiếp diễn).
 // Mỗi tín hiệu được theo dõi trên từng tick thật và so với đánh ngược, vào ngẫu nhiên cùng giờ, cản giả.
-// Kết quả: Common\Files\BotScp\SignalLab\<InpRunName>\ tong_ket.txt, nhom.csv, vung_htf.csv (tin_hieu.csv khi bật InpWriteSignals).
+// Đo thêm phản ứng tại cản theo sức mạnh cản, tách khỏi cách vào lệnh (SPEC mục 24).
+// Kết quả: Common\Files\BotScp\SignalLab\<InpRunName>\ tong_ket.txt, nhom.csv, phan_ung_can.csv, vung_htf.csv
+// (tin_hieu.csv và cham_can.csv khi bật InpWriteSignals).
 #property strict
 
 #include <BotVang\ScpTypes.mqh>
@@ -11,6 +13,7 @@
 #include <BotVang\SigDetect.mqh>
 #include <BotVang\SigTrack.mqh>
 #include <BotVang\SigReport.mqh>
+#include <BotVang\SigProbe.mqh>
 #include <BotVang\SigDraw.mqh>
 
 input string InpRunName      = "lab_run";  // tên lượt đo; không ghi đè lượt đã có
@@ -28,7 +31,7 @@ input int    InpNewsBeforeMin = 5;         // né tin: phút trước
 input int    InpNewsAfterMin  = 5;         // né tin: phút sau
 input int    InpWarmupBars   = 800;        // số nến nạp trước mỗi khung
 input bool   InpDraw         = true;       // vẽ cản/tín hiệu khi chạy máy thử có hình
-input bool   InpWriteSignals = false;      // ghi tin_hieu.csv từng lệnh (rất nặng: ~80 MB mỗi tuần)
+input bool   InpWriteSignals = false;      // ghi tin_hieu.csv từng lệnh và cham_can.csv từng lần chạm (rất nặng: ~80 MB mỗi tuần)
 
 const double SIG_SL_EXTRA[3] = {0.0, 0.3, 0.5}; // đệm dừng lỗ thêm theo ATR M5 (SPEC 23.4)
 
@@ -40,6 +43,7 @@ SigLevelBook  g_book;
 SigDetector   g_det;
 SigTracker    g_trk;
 SigReport     g_rep;
+SigProbeBook  g_probe;
 datetime      g_news[];
 int           g_news_n=0;
 int           g_near[];
@@ -48,6 +52,7 @@ double        g_near_center=0;
 string        g_folder;
 int           g_fh_levels=INVALID_HANDLE;
 int           g_fh_signals=INVALID_HANDLE;
+int           g_fh_touches=INVALID_HANDLE;
 int           g_limit_records=0;
 int           g_signals=0, g_fake_signals=0, g_stale=0, g_chase=0, g_late_bars=0, g_ticks=0;
 double        g_tick=0.01;
@@ -194,6 +199,7 @@ void HandleSignal(const SigSignal &g, datetime now, double bid, double ask)
       f.var_moc=g.var; f.var_sl=v; f.scen=scen; f.entry_mode=limit ? 1 : 0; f.flip_def=g.flip_def; f.wick_broken=g.wick_broken;
       f.news=news; f.bars_after=g.bars_after; f.hour=dt.hour; f.spread=spread; f.atr=g.atr;
       f.cost_r=(spread+2.0*InpSlipPerLeg)/r;
+      f.disp=g.disp; f.body_max=g.body_max; f.bos=g.bos; f.rank=g.rank; f.brk_body=g.brk_body; f.merged=g.merged;
       if(g.fake) { g_trk.Open(SIG_K_FAKE,g.level_id,now,g.dir,bid,ask,r,k,f); continue; }
       long id=g_trk.OpenWithControls(now,g.dir,bid,ask,r,k,f);
       if(!limit && v==0 && id>0 && g_visual && InpDraw && (g.var==0 || !g.wick))
@@ -225,7 +231,9 @@ string RecLine(const SigRec &x)
             IntegerToString(f.tier)+";"+IntegerToString(f.conf)+";"+SigReactionName(f.reaction)+";"+(f.strict?"1":"0")+";"+(f.entry_mode==1?"cho_giay":"thi_truong")+";"+
             (f.etf==0?"M1":"M5")+";"+IntegerToString(f.test_no)+";"+IntegerToString(f.var_moc)+";"+IntegerToString(f.var_sl)+";"+
             IntegerToString(f.flip_def)+";"+(f.wick_broken?"1":"0")+";"+IntegerToString(f.news)+";"+IntegerToString(f.hour)+";"+
-            DoubleToString(f.spread,3)+";"+DoubleToString(f.atr,3)+";"+DoubleToString(f.cost_r,3);
+            DoubleToString(f.spread,3)+";"+DoubleToString(f.atr,3)+";"+DoubleToString(f.cost_r,3)+";"+
+            DoubleToString(f.disp,2)+";"+DoubleToString(f.body_max,2)+";"+IntegerToString(f.bos)+";"+IntegerToString(f.rank)+";"+
+            DoubleToString(f.brk_body,2)+";"+IntegerToString(f.merged);
    for(int i=0;i<SIG_NR;i++) s+=";"+IntegerToString(x.rs[i])+";"+DoubleToString(x.rr[i],3);
    for(int j=0;j<SIG_NS;j++) s+=";"+IntegerToString(x.ss[j])+";"+DoubleToString(x.sr[j],3);
    s+=";"+DoubleToString(x.mfe,3)+";"+DoubleToString(x.mae,3);
@@ -253,7 +261,8 @@ void OpenSignalsFile()
    if(fh!=INVALID_HANDLE)
      {
       string h="id;loai;goc;gio;chieu;gia_vao;R_gia;k_can_lon;k_can_M5;k_DOL;kich_ban;nhom_can;loai_can;bac;trung_can;phan_ung;"
-               "dong_vuot_mep_gan;cach_vao;khung_vao;lan_cham_truoc;moc;dung;pha_def;rau_da_vuot;tin;gio_san;spread;atr;chi_phi_R";
+               "dong_vuot_mep_gan;cach_vao;khung_vao;lan_cham_truoc;moc;dung;pha_def;rau_da_vuot;tin;gio_san;spread;atr;chi_phi_R;"
+               "luc_bat_ATR;than_dong_luc_ATR;pha_cau_truc;do_lon_dinh;than_nen_pha_ATR;so_tin_hieu_gop";
       string rn[SIG_NR]={"dua_1R","dua_1.5R","dua_2R","dua_3R","dua_can_lon","dua_DOL"};
       for(int i=0;i<SIG_NR;i++) h+=";"+rn[i]+"_kq;"+rn[i]+"_R";
       for(int j=0;j<SIG_NS;j++) h+=";hai_phan"+IntegerToString(j)+"_kq;hai_phan"+IntegerToString(j)+"_R";
@@ -283,7 +292,9 @@ void WriteResults()
                " | lệnh chờ trên giấy khớp="+(string)g_limit_records+" (chỉ để so sánh, bot không dùng)\r\n"+
                "Tín hiệu thật="+(string)g_signals+" | từ cản giả="+(string)g_fake_signals+" | bỏ vì quá 2 giây="+(string)g_stale+
                " | bỏ vì giá chạy xa="+(string)g_chase+" | ngẫu nhiên mở="+(string)g_trk.RtMade()+
-               " | ngẫu nhiên thiếu dữ liệu="+(string)g_trk.RtMissed()+"\r\n";
+               " | ngẫu nhiên thiếu dữ liệu="+(string)g_trk.RtMissed()+"\r\n"+
+               "Tín hiệu gộp vào tín hiệu khác ở cản chồng nhau="+(string)g_det.Merged()+
+               " | lần chạm đo phản ứng="+(string)g_probe.DoneCount()+" (xem phan_ung_can.csv)\r\n";
    int ft=FileOpen(g_folder+"\\tong_ket.txt",FILE_COMMON|FILE_WRITE|FILE_TXT|FILE_UNICODE);
    if(ft!=INVALID_HANDLE)
      {
@@ -291,6 +302,8 @@ void WriteResults()
       g_rep.WriteSummary(ft);
       FileClose(ft);
      }
+   int fp=FileOpen(g_folder+"\\phan_ung_can.csv",FILE_COMMON|FILE_WRITE|FILE_TXT|FILE_UNICODE);
+   if(fp!=INVALID_HANDLE) { g_probe.Write(fp,head); FileClose(fp); }
    int fn=FileOpen(g_folder+"\\nhom.csv",FILE_COMMON|FILE_WRITE|FILE_TXT|FILE_UNICODE);
    if(fn!=INVALID_HANDLE) { g_rep.Write(fn,g_signals,g_fake_signals,head); FileClose(fn); }
    Print("[SIGLAB] ",head);
@@ -314,12 +327,19 @@ int OnInit()
    g_book.Init(g_tick,InpSeed,InpFakeLevels);
    g_fh_levels=FileOpen(g_folder+"\\vung_htf.csv",FILE_COMMON|FILE_WRITE|FILE_TXT|FILE_UNICODE);
    if(g_fh_levels!=INVALID_HANDLE)
-      FileWriteString(g_fh_levels,"id;that_gia;goc;nhom;loai;vai_tro;day;dinh;gio_hinh_thanh;gio_biet;gio_het;ly_do_het;so_lan_cham\r\n");
+      FileWriteString(g_fh_levels,"id;that_gia;goc;nhom;loai;vai_tro;day;dinh;gio_hinh_thanh;gio_biet;gio_het;ly_do_het;so_lan_cham;"
+                      "luc_bat_ATR;than_dong_luc_ATR;pha_cau_truc;do_lon_dinh;than_nen_pha_ATR\r\n");
    g_book.SetLog(g_fh_levels);
    g_det.Init(InpReactBars);
    g_trk.Init(InpSeed+7,InpMaxHoldMin,InpRandomCopies);
    g_rep.Init(InpSlipPerLeg);
-   if(InpWriteSignals) OpenSignalsFile();
+   g_probe.Init();
+   if(InpWriteSignals)
+     {
+      OpenSignalsFile();
+      g_fh_touches=FileOpen(g_folder+"\\cham_can.csv",FILE_COMMON|FILE_WRITE|FILE_TXT|FILE_UNICODE);
+      g_probe.SetRaw(g_fh_touches);
+     }
    LoadNews();
    Warmup();
    g_ready=true;
@@ -338,8 +358,13 @@ void OnTick()
    bool nb[SIG_TF_COUNT];
    UpdateFrames(nb,now);
    // Thứ tự: phá trong một nhịp → phản ứng ở nến vừa đóng (với cản đã có) → cản mới/hết hiệu lực từ khung nguồn.
+   if(nb[SIG_M1] && g_s[SIG_M1].Count()>1) g_probe.OnM1Close(g_s[SIG_M1].LastBar());
    if(nb[SIG_M5] && g_s[SIG_M5].Count()>1)
-      g_det.OnM5Close(g_s[SIG_M5].LastBar(),MathMax(2.0*g_tick,SCP_K_BUFFER*g_s[SIG_M5].Atr()),g_book);
+     {
+      double eps5=MathMax(2.0*g_tick,SCP_K_BUFFER*g_s[SIG_M5].Atr());
+      g_det.OnM5Close(g_s[SIG_M5].LastBar(),eps5,g_book);
+      g_probe.OnM5Close(g_s[SIG_M5].LastBar(),eps5);
+     }
    if(nb[SIG_M1] && InpUseM1) g_det.OnEntryBarClosed(0,GetPointer(g_s[SIG_M1]),g_book,g_near,g_near_n,g_tick);
    if(nb[SIG_M5] && InpUseM5) g_det.OnEntryBarClosed(1,GetPointer(g_s[SIG_M5]),g_book,g_near,g_near_n,g_tick);
    bool levels_changed=false;
@@ -360,6 +385,10 @@ void OnTick()
    for(int i=0;i<n;i++) HandleSignal(sg[i],now,t.bid,t.ask);
    g_det.OnTick(g_book,g_near,g_near_n,t.bid,now,GetPointer(g_s[SIG_M1]),GetPointer(g_s[SIG_M5]),g_tick,
                 InpUseM5Minor,InpUseM1,InpUseM5);
+   SigTouch tc[];
+   int nt=g_det.TakeTouches(tc);
+   for(int i=0;i<nt;i++) g_probe.Open(tc[i],t.bid,g_s[SIG_M5].Atr());
+   g_probe.OnTick(t.bid);
    int secs=ScpSecondsToSessionEnd(_Symbol,now);
    g_trk.Update(now,t.bid,t.ask,secs>0 && secs<=60);
    DrainDone();
@@ -372,6 +401,8 @@ void OnDeinit(const int reason)
    g_trk.CloseAll(g_last_bid,g_last_ask);
    DrainDone();
    if(g_fh_signals!=INVALID_HANDLE) FileClose(g_fh_signals);
+   g_probe.CloseAll(TimeCurrent());
+   if(g_fh_touches!=INVALID_HANDLE) FileClose(g_fh_touches);
    g_book.FlushLog();
    if(g_fh_levels!=INVALID_HANDLE) FileClose(g_fh_levels);
    WriteResults();

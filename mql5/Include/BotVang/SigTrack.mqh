@@ -46,6 +46,13 @@ struct SigFeatures
    double            spread;
    double            atr;        // ATR khung vào lúc chạm
    double            cost_r;     // (spread + 2·trượt)/R
+   // Sức mạnh cản lúc chạm (SPEC 24.1); -1 = không áp dụng
+   double            disp;       // lực bật (ATR nguồn)
+   double            body_max;   // thân nến động lực lớn nhất (ATR nguồn)
+   int               bos;        // số đỉnh/đáy đối diện bị phá trước lần chạm đầu
+   int               rank;       // độ lớn đỉnh/đáy (số nến bên trái)
+   double            brk_body;   // bản đổi vai: thân nến phá (ATR nguồn)
+   int               merged;     // số tín hiệu cùng lúc ở cản chồng lên đã gộp vào (SPEC 24.2)
   };
 
 struct SigRec
