@@ -1,0 +1,6 @@
+InpEnabled=true
+InpRunName=scalp_v3_auto
+InpExportCandles=true
+InpEntry=2
+InpEarlyWick=true
+InpManage=true

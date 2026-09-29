@@ -1,0 +1,6 @@
+InpRunName=eth_goc
+InpSeed=1
+InpMaxSpread=2.3
+InpCost=2.3
+InpWriteLock=true
+InpLockSets=GOC,T1

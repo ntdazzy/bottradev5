@@ -1,0 +1,10 @@
+BotScalpPhanUng XAUUSDm PERIOD_M5
+Ngay co tick 225; tin hieu 268; bo 12218; gui 268; huy lenh cho 192; loi gui 0
+Lenh da dong 60; chua xong 0; lenh/ngay 0.27; thang 25.00%
+Tien sau phi san -15.61; TB/lenh -0.260; thang TB 6.351; thua TB -2.464; giu TB 3.87 phut
+Tru them truot 0.50 gia/chang thi truong: tien -39.61; TB/lenh -0.660; thang 23.33%
+Sut von lon nhat 57.60; doi ve gia khop 23; siet theo nen 8; dong som 1
+Tu kiem tra loi 0; tong deal - tong so 0.000000
+Day la do qua khu da tung duoc xem, KHONG phai demo gia moi. Tru them truot chi la phep thu chi phi, khong doi duong gia.
+So du san - von dau - tong deal -0.000000; tu 2026.01.05 00:00:00 den 2026.09.25 20:57:59
+mode=1 early=0 manage=1 min_ratio=1.20 slip=0.50 max_minutes=30 risk_pct=0.50 lot=0.01 day_loss=10.00 week_loss=20.00 total_loss=15.00

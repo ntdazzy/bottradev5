@@ -1,0 +1,5 @@
+InpRunName=btc_goc
+InpSeed=1
+InpMaxSpread=25
+InpCost=25
+InpOpenHoldout=true

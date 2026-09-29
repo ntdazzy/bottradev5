@@ -1,0 +1,4 @@
+InpRunName=goc
+InpLot=0.01
+InpStep=0.4
+InpRestartAfterStop=false

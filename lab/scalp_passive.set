@@ -1,0 +1,5 @@
+InpEnabled=true
+InpRunName=scalp_v3_passive
+InpEntry=2
+InpEarlyWick=true
+InpManage=false

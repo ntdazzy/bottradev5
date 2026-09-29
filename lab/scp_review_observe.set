@@ -1,0 +1,7 @@
+InpEnabled=true
+InpSendEnabled=false
+InpAllowDemo=false
+InpRunName=scp_review_observe_20260928_v4
+InpCommissionRoundTrip=0
+InpFullDump=false
+InpLogZones=false

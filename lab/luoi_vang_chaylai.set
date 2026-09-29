@@ -1,0 +1,4 @@
+InpRunName=chaylai
+InpLot=0.01
+InpStep=0.4
+InpRestartAfterStop=true

@@ -1,0 +1,6 @@
+InpEnabled=true
+InpRunName=scp_observe_v1
+InpRiskPct=0.25
+InpMinRR=1.2
+InpLogZones=false
+InpFullDump=false

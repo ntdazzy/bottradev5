@@ -1,0 +1,939 @@
+//@version=6
+// =============================================================================
+// BotVang SMC  (TradingView, Pine Script v6, vẽ đè lên giá)
+// Mã viết riêng cho dự án BotVang, không chép chỉ báo khác.
+//
+// Cách dùng: TradingView > Pine Editor > dán toàn bộ file này > Lưu > Thêm vào biểu đồ.
+//
+// Chỉ báo này vẽ (mỗi lớp bật/tắt được trong phần Cài đặt):
+//   1. Cấu trúc BOS / CHoCH hai lớp: nội bộ (đỉnh/đáy 5 nến) và lớn (đỉnh/đáy 20 nến).
+//      Chỉ tính khi GIÁ ĐÓNG vượt đỉnh/đáy.
+//   2. OB (khối lệnh) sinh ra ở mỗi lần phá. OB hỏng (giá đóng qua) thành Breaker ngược chiều.
+//   3. FVG (khoảng trống giá) và IFVG (FVG hỏng, đổi chiều), có vạch 50%.
+//   4. MSNR mức A / V: nét liền = mới, nét chấm = đã bị râu chạm, đổi màu = đã lật.
+//   5. Kháng cự / hỗ trợ từ đỉnh/đáy 5 nến (cũng là mức thanh khoản), EQH / EQL, dấu quét (x).
+//   6. EMA 20 / 50 / 200, Bollinger (20, 2), bảng RSI(14) ở góc phải trên.
+//   7. Điểm vào lệnh của các cách ở SPEC 21.3, theo "Lần đo 2": FVG, OB-CHoCH, OB-BOS, QUET, ICT (cả mua và bán).
+//      Dừng lỗ lệnh mua = đáy lớn (20 nến) gần nhất không cao hơn mép dưới vùng, trừ 0,1 ATR
+//      (không có đáy như vậy thì mép dưới vùng trừ 0,1 ATR). Lệnh bán ngược lại.
+//      Chốt lời = 1R / 1,5R / 2R (R = khoảng từ giá vào tới dừng lỗ), chọn trong Cài đặt, mặc định 1R.
+//      Lọc chiều (Cài đặt): tất cả tín hiệu / theo xu hướng H1 / theo EMA 200 H1; chỉ dùng nến H1 đã đóng.
+//      Vạch xám = giá vào, vạch đỏ đứt ĐẬM = dừng lỗ, vạch xanh đứt ĐẬM = chốt lời
+//      (vạch BOS/CHoCH nội bộ là nét đứt MẢNH, lớp lớn là nét liền đậm).
+//      Tam giác = lệnh khớp. ✓ = chạm chốt lời. ✗ = chạm dừng lỗ. "hủy" = hủy lệnh chờ.
+//      Rê chuột lên nhãn để đọc giải thích.
+//
+// CÁC ĐIỂM VÀO LỆNH CHƯA KIỂM CHỨNG. Công cụ đo SmcLab chưa đo xong, chưa biết cách nào có lợi thế.
+// Không dùng tiền thật theo các dấu này.
+//
+// Không vẽ lại: mọi thứ chỉ tính khi nến đã đóng, không dùng nến tương lai.
+// Hộp OB/FVG và vạch cản vẽ từ nến gốc, nhưng chấm tròn nhỏ đánh dấu nến mà nó thật sự xuất hiện
+// (chỉ từ nến sau chấm mới được dùng). Khi một nến vừa chạm giá vào vừa chạm mức khác,
+// chỉ báo chọn kết quả xấu hơn cho lệnh. Định nghĩa: docs/SPEC.md mục 21 (dùng chung với SmcLab).
+// =============================================================================
+indicator("BotVang SMC", "BotVangSMC", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+max_bars_back(high, 60)
+max_bars_back(low, 60)
+
+// ---------- Hằng số theo SPEC 21 ----------
+const int   N_NOI_BO    = 5      // lớp nội bộ; đỉnh/đáy 5/5 cũng là mức thanh khoản
+const int   N_LON       = 20     // lớp lớn
+const int   ATR_DAI     = 14     // ATR kiểu Wilder (ta.atr là trung bình RMA)
+const float OB_MAX_ATR  = 3.5    // bỏ OB cao hơn 3,5 ATR
+const float FVG_MIN_ATR = 0.25   // khoảng trống FVG phải lớn hơn 0,25 ATR
+const float NHAY_ATR    = 0.5    // nến nhảy giá: |giá mở - giá đóng nến trước| > 0,5 ATR
+const float EQ_ATR      = 0.1    // EQH/EQL: hai đỉnh (đáy) lệch không quá 0,1 ATR
+const float DEM_ATR     = 0.1    // đệm dừng lỗ 0,1 ATR
+const int   SONG_OB     = 300    // số nến sống của từng loại
+const int   SONG_BRK    = 300
+const int   SONG_FVG    = 500
+const int   SONG_IFVG   = 200
+const int   SONG_MUC    = 500    // mức thanh khoản
+const int   SONG_MSNR   = 100
+const int   CHO_FVG     = 30     // số nến chờ khớp tối đa
+const int   CHO_OB      = 50
+const int   CHO_ICT     = 30
+const int   ICT_NEN     = 20     // CHoCH phải đến trong 20 nến sau cú quét
+const int   MAX_VUNG    = 50     // tối đa vùng / mức đang theo dõi mỗi loại (bỏ cái cũ nhất)
+const int   MAX_LENH    = 40     // tối đa lệnh đang theo dõi
+const int   GIU_HINH    = 350    // giữ tối đa chừng này đường / hộp; xóa hình cũ đã xong trước
+const int   MAX_DINH    = 500    // giữ 500 giá đỉnh / đáy lớp lớn gần nhất (để tìm dừng lỗ)
+const int   EMA_H1      = 200    // EMA 200 của giá đóng H1 (lọc chiều)
+
+const int K_OB   = 0
+const int K_BRK  = 1
+const int K_FVG  = 2
+const int K_IFVG = 3
+
+// ---------- Cài đặt ----------
+const string G1 = "1. Cấu trúc BOS / CHoCH"
+const string G2 = "2. OB và Breaker"
+const string G3 = "3. FVG / IFVG"
+const string G4 = "4. MSNR (mức A / V)"
+const string G5 = "5. Kháng cự, hỗ trợ và thanh khoản"
+const string G6 = "6. Đường trung bình, Bollinger, RSI"
+const string G7 = "7. Điểm vào lệnh (CHƯA KIỂM CHỨNG)"
+const string G8 = "8. Màu"
+
+bool   showStrInt = input.bool(true, "BOS / CHoCH lớp nội bộ (đỉnh/đáy 5 nến)", group = G1, tooltip = "Nét đứt, chữ nhỏ. BOS = phá cùng chiều xu hướng. CHoCH = phá ngược xu hướng (đổi xu hướng). Chỉ tính khi giá ĐÓNG qua đỉnh/đáy.")
+bool   showStrBig = input.bool(true, "BOS / CHoCH lớp lớn (đỉnh/đáy 20 nến)", group = G1, tooltip = "Nét liền, chữ to hơn.")
+string layerOpt   = input.string("Cả hai", "Lớp dùng cho OB và điểm vào", options = ["Nội bộ", "Lớn", "Cả hai"], group = G1, tooltip = "Lớp cấu trúc sinh ra OB và các điểm vào FVG, OB-CHoCH, OB-BOS. Cách ICT luôn dùng lớp nội bộ.")
+bool   showOb     = input.bool(true, "OB (khối lệnh)", group = G2, tooltip = "Phá lên: OB là nến có đáy thấp nhất nằm giữa đỉnh bị phá và nến phá. Bỏ OB cao hơn 3,5 ATR. Chấm tròn = nến mà OB thật sự xuất hiện.")
+bool   showBrk    = input.bool(true, "Breaker (OB hỏng, đổi chiều)", group = G2, tooltip = "OB mua bị giá đóng dưới đáy thì thành Breaker bán, và ngược lại.")
+bool   showFvg    = input.bool(true, "FVG (khoảng trống giá)", group = G3, tooltip = "Khoảng trống giữa nến 1 và nến 3, lớn hơn 0,25 ATR, nến giữa đóng vượt qua, không có nến nhảy giá. Chấm tròn = nến mà FVG thật sự xuất hiện.")
+bool   showIfvg   = input.bool(true, "IFVG (FVG hỏng, đổi chiều)", group = G3, tooltip = "FVG mua bị giá đóng dưới đáy thì thành IFVG bán, và ngược lại.")
+bool   showMid    = input.bool(true, "Vạch 50% của FVG / IFVG", group = G3)
+bool   showMsnr   = input.bool(false, "MSNR mức A / V", group = G4, tooltip = "Cam = mức A (kháng cự: nến xanh rồi nến đỏ, lấy giá đóng nến xanh). Xanh ngọc = mức V (hỗ trợ: nến đỏ rồi nến xanh). Nét liền = mới, nét chấm = đã bị râu chạm. Chàm = kháng cự đã lật thành hỗ trợ. Hồng = hỗ trợ đã lật thành kháng cự. Mỗi mức dùng 100 nến.")
+bool   showSr     = input.bool(true, "Kháng cự / hỗ trợ từ đỉnh, đáy 5 nến", group = G5, tooltip = "Vạch chấm đỏ = đỉnh (thanh khoản bên mua), xanh = đáy (thanh khoản bên bán). Vạch dừng khi giá đóng qua. Chấm tròn nhỏ = nến mà đỉnh/đáy được xác nhận.")
+bool   showEq     = input.bool(true, "EQH / EQL (hai đỉnh hoặc hai đáy gần bằng nhau)", group = G5, tooltip = "Hai đỉnh (đáy) liền nhau lệch không quá 0,1 ATR.")
+bool   showSweep  = input.bool(true, "Dấu quét thanh khoản (x)", group = G5, tooltip = "Râu vượt qua mức nhưng giá đóng quay lại. Mỗi mức chỉ bị quét một lần.")
+bool   showE20    = input.bool(true, "EMA 20", group = G6, inline = "ema")
+bool   showE50    = input.bool(true, "EMA 50", group = G6, inline = "ema")
+bool   showE200   = input.bool(true, "EMA 200", group = G6, inline = "ema")
+bool   showBb     = input.bool(false, "Bollinger (20, 2)", group = G6)
+bool   showRsi    = input.bool(true, "Bảng RSI(14) ở góc phải trên", group = G6, tooltip = "RSI của nến đã đóng gần nhất. Từ 70 trở lên = quá mua, từ 30 trở xuống = quá bán. Muốn xem đường RSI thì thêm chỉ báo RSI có sẵn của TradingView.")
+bool   onFvg      = input.bool(true, "FVG", group = G7, inline = "v1")
+bool   onObChoch  = input.bool(true, "OB-CHoCH", group = G7, inline = "v1")
+bool   onObBos    = input.bool(true, "OB-BOS", group = G7, inline = "v1", tooltip = "FVG: sau BOS/CHoCH, lệnh chờ ở mép FVG mới nhất trong cú phá. OB-CHoCH / OB-BOS: lệnh chờ ở mép OB của cú phá. Dừng lỗ lệnh mua: đáy lớn (20 nến) gần nhất không cao hơn mép dưới vùng, trừ 0,1 ATR; không có đáy như vậy thì mép dưới vùng trừ 0,1 ATR. Lệnh bán ngược lại. Chốt lời theo ô Chốt lời bên dưới. Giá mở nến sau đã vượt giá đặt thì lệnh không đặt được (hủy). Vạch đứt đậm đỏ = dừng lỗ, xanh = chốt lời. CHƯA KIỂM CHỨNG.")
+bool   onQuet     = input.bool(true, "QUET", group = G7, inline = "v2")
+bool   onIct      = input.bool(true, "ICT", group = G7, inline = "v2", tooltip = "QUET: quét mức thanh khoản rồi đóng quay lại, vào ở giá mở nến sau; dừng lỗ tính từ đáy (đỉnh) râu nến quét. ICT: quét, rồi CHoCH nội bộ trong 20 nến, lệnh chờ ở FVG của cú đảo (không có thì OB); dừng lỗ tính từ đáy (đỉnh) cú quét. Cả hai dùng đáy (đỉnh) lớn gần nhất như FVG / OB, và chốt lời theo ô Chốt lời bên dưới. CHƯA KIỂM CHỨNG.")
+string tpOpt      = input.string("1R", "Chốt lời", options = ["1R", "1,5R", "2R"], group = G7, tooltip = "Chốt lời bằng mấy lần R. R = khoảng từ giá vào tới dừng lỗ. Dùng cho cả 5 cách (kể cả ICT). SmcLab đo riêng 3 mức này. CHƯA KIỂM CHỨNG.")
+string dirOpt     = input.string("Tất cả tín hiệu", "Lọc chiều mua / bán", options = ["Tất cả tín hiệu", "Theo xu hướng H1", "Theo EMA 200 H1"], group = G7, tooltip = "Tất cả tín hiệu: vẽ mọi lệnh. Theo xu hướng H1: chỉ vẽ lệnh cùng chiều lần phá cấu trúc gần nhất trên H1 (đỉnh / đáy 5 nến H1, giá đóng phá qua). Theo EMA 200 H1: giá đóng H1 trên EMA 200 thì chỉ vẽ lệnh mua, dưới thì chỉ vẽ lệnh bán. Chỉ dùng nến H1 đã đóng. Chưa đủ dữ liệu H1 thì không vẽ lệnh nào.")
+color  cUp        = input.color(#089981, "Tăng / mua", group = G8, inline = "m")
+color  cDn        = input.color(#F23645, "Giảm / bán", group = G8, inline = "m")
+
+// ---------- Chuỗi số tính trên mọi nến ----------
+float atr14 = ta.atr(ATR_DAI)
+// so với ATR của nến trước (ATR duy nhất đã biết lúc mở nến; ATR nến này đã gồm cả cú nhảy)
+bool  isGap = not na(atr14[1]) and not na(close[1]) and math.abs(open - close[1]) > NHAY_ATR * atr14[1]
+// FVG ở nến vừa đóng (nến 3 = nến này, nến giữa = nến trước)
+bool  fvgUp = low > high[2] and close[1] > high[2] and low - high[2] > FVG_MIN_ATR * atr14 and not isGap and not isGap[1]
+bool  fvgDn = high < low[2] and close[1] < low[2] and low[2] - high > FVG_MIN_ATR * atr14 and not isGap and not isGap[1]
+
+// Đỉnh ở nến p (n nến trước): high[p] >= high của n nến trước nó và > high của n nến sau nó. Chỉ biết ở nến p+n.
+pivotHigh(simple int n) =>
+    float hh = ta.highest(high, n)
+    bar_index >= 2 * n and high[n] >= hh[n + 1] and high[n] > hh
+
+pivotLow(simple int n) =>
+    float ll = ta.lowest(low, n)
+    bar_index >= 2 * n and low[n] <= ll[n + 1] and low[n] < ll
+
+bool  pivH5  = pivotHigh(N_NOI_BO)
+bool  pivL5  = pivotLow(N_NOI_BO)
+bool  pivH20 = pivotHigh(N_LON)
+bool  pivL20 = pivotLow(N_LON)
+float hi5    = high[N_NOI_BO]
+float lo5    = low[N_NOI_BO]
+float hi20   = high[N_LON]
+float lo20   = low[N_LON]
+
+float ema20  = ta.ema(close, 20)
+float ema50  = ta.ema(close, 50)
+float ema200 = ta.ema(close, 200)
+[bbMid, bbUp, bbLo] = ta.bb(close, 20, 2)
+float rsi14  = ta.rsi(close, 14)
+
+// chốt lời = số lần R
+float tpR    = tpOpt == "1R" ? 1.0 : tpOpt == "1,5R" ? 1.5 : 2.0
+
+// Chạy trên nến H1 (trong request.security). Xu hướng = chiều lần giá đóng phá đỉnh / đáy 5 nến gần nhất chưa bị phá
+// (cùng luật với cấu trúc lớp nội bộ, kể cả lần phá đầu). Phía EMA: giá đóng trên EMA 200 = +1, dưới = -1;
+// EMA hạt giống = trung bình 200 giá đóng đầu. 0 = chưa biết. Trả về giá trị của nến H1 trước ([1]):
+// cùng lookahead_on, mỗi nến của biểu đồ chỉ thấy nến H1 đã đóng, không vẽ lại.
+h1Dirs() =>
+    var int   trend = 0
+    var int   lastT = 0          // loại đỉnh/đáy cuối cùng: +1 đỉnh, -1 đáy
+    var float hP    = na
+    var bool  hB    = true
+    var float lP    = na
+    var bool  lB    = true
+    var float ema   = na
+    bool  pH  = pivotHigh(N_NOI_BO)
+    bool  pL  = pivotLow(N_NOI_BO)
+    float hi  = high[N_NOI_BO]
+    float lo  = low[N_NOI_BO]
+    float sma = ta.sma(close, EMA_H1)
+    // đỉnh liền sau đỉnh chỉ giữ nếu cao hơn (đáy tương tự); cùng một nến thì xử lý loại ngược với loại cuối trước
+    bool lowFirst = pH and pL and lastT == 1
+    if lowFirst and (lastT != -1 or lo < lP)
+        lP    := lo
+        lB    := false
+        lastT := -1
+    if pH and (lastT != 1 or hi > hP)
+        hP    := hi
+        hB    := false
+        lastT := 1
+    if pL and not lowFirst and (lastT != -1 or lo < lP)
+        lP    := lo
+        lB    := false
+        lastT := -1
+    if not hB and close > hP
+        hB    := true
+        trend := 1
+    if not lB and close < lP
+        lB    := true
+        trend := -1
+    ema := na(ema) ? sma : ema + 2.0 / (EMA_H1 + 1) * (close - ema)
+    int emaDir = na(ema) ? 0 : close > ema ? 1 : close < ema ? -1 : 0
+    [trend[1], emaDir[1]]
+
+[h1Trend, h1Ema] = request.security(syminfo.tickerid, "60", h1Dirs(), lookahead = barmerge.lookahead_on)
+
+// ---------- Kiểu dữ liệu ----------
+type Zone
+    int   dir               // +1 vùng đỡ giá (phía mua), -1 vùng chặn giá (phía bán)
+    int   kind              // K_OB, K_BRK, K_FVG, K_IFVG
+    int   layer             // 0 nội bộ, 1 lớn, -1 không theo lớp (FVG)
+    float top
+    float bot
+    float atrv              // ATR đóng băng lúc vùng xuất hiện
+    int   born              // nến (đã đóng) mà vùng thật sự xuất hiện
+    int   midBar            // FVG: nến giữa
+    bool  touched = false   // đã bị giá chạm
+    box   bx
+    line  mid
+
+type Level
+    bool  isHigh            // true: đỉnh = thanh khoản bên mua; false: đáy = thanh khoản bên bán
+    float price
+    int   born
+    bool  swept = false
+    line  ln
+
+type Snr
+    int   side              // +1 đang là hỗ trợ, -1 đang là kháng cự
+    bool  isA               // gốc là mức A (true) hay mức V (false)
+    bool  flipped = false
+    bool  fresh = true
+    float price
+    int   born
+    line  ln
+
+// ICT đang chờ đóng nến sau nến CHoCH (nến CHoCH có thể là nến giữa của một FVG)
+type IctWait
+    int   dir
+    int   brk               // nến CHoCH
+    int   leg               // nến cực trị của chân
+    float ext               // râu cú quét
+    float obTop             // OB của cú đảo (na nếu không có)
+    float obBot
+
+type Swing
+    int   n
+    int   layer             // 0 nội bộ, 1 lớn
+    int   trend = 0         // +1 tăng, -1 giảm, 0 chưa có
+    int   lastType = 0      // loại đỉnh/đáy cuối cùng: +1 đỉnh, -1 đáy
+    float hPrice            // đỉnh gần nhất
+    int   hBar
+    bool  hBroken = true
+    float lPrice            // đáy gần nhất
+    int   lBar
+    bool  lBroken = true
+    float loMin             // nến có low thấp nhất từ sau đỉnh (tới nến trước)
+    float loMinHi
+    int   loMinBar
+    float hiMax             // nến có high cao nhất từ sau đáy (tới nến trước)
+    float hiMaxLo
+    int   hiMaxBar
+    int   waitDir = 0       // chờ FVG xuất hiện ngay ở nến sau nến phá
+    int   waitBar
+    int   waitLeg
+    IctWait ictWait         // ICT chờ một nến (chỉ lớp nội bộ)
+
+type Setup
+    string name
+    int    dir
+    int    layer            // lớp cấu trúc; -1 không theo lớp
+    float  entry
+    float  sl
+    float  tp
+    float  zTop
+    float  zBot
+    int    born
+    int    maxWait
+    bool   cancelOnTp
+    bool   cancelOnOpp
+    int    state            // 0 chờ khớp, 1 đã khớp, 2 chờ giá mở nến sau (QUET)
+    line   lnEntry
+    line   lnSl
+    line   lnTp
+    label  lb               // nhãn tên lệnh (dùng chung khi gộp nhiều lệnh cùng nến, cùng giá vào)
+
+type Sweep
+    int   sBar
+    float ext               // râu nến quét: low khi quét đáy, high khi quét đỉnh
+    bool  used = true
+
+type LastPivot
+    float price
+    int   pBar
+
+type Marks
+    float obUp
+    float obDn
+    float fvgUp
+    float fvgDn
+    float pivHi
+    float pivLo
+
+// ---------- Trạng thái ----------
+var array<Zone>  obZones   = array.new<Zone>()
+var array<Zone>  brkZones  = array.new<Zone>()
+var array<Zone>  fvgZones  = array.new<Zone>()
+var array<Zone>  ifvgZones = array.new<Zone>()
+var array<Level> hiLevels  = array.new<Level>()
+var array<Level> loLevels  = array.new<Level>()
+var array<Snr>   snrLevels = array.new<Snr>()
+var array<Setup> setups    = array.new<Setup>()
+var array<line>  doneLines = array.new<line>()
+var array<box>   doneBoxes = array.new<box>()
+var array<float> bigHighs  = array.new<float>()   // giá đỉnh lớp lớn đã xác nhận theo zigzag, cũ -> mới
+var array<float> bigLows   = array.new<float>()   // giá đáy lớp lớn đã xác nhận theo zigzag, cũ -> mới
+var Swing     swInt   = Swing.new(n = N_NOI_BO, layer = 0)
+var Swing     swBig   = Swing.new(n = N_LON, layer = 1)
+var Sweep     swpLow  = Sweep.new()     // cú quét đáy gần nhất (cho ICT mua)
+var Sweep     swpHigh = Sweep.new()     // cú quét đỉnh gần nhất (cho ICT bán)
+var LastPivot lastPH  = LastPivot.new()
+var LastPivot lastPL  = LastPivot.new()
+Marks mk = Marks.new()
+
+// ---------- Hàm nhỏ ----------
+dirColor(int d) => d > 0 ? cUp : cDn
+
+fmt(float p) => str.tostring(p, format.mintick)
+
+clampX(int x) => math.max(x, bar_index - 4999)
+
+layerOn(int layer) => layerOpt == "Cả hai" or (layer == 0 and layerOpt == "Nội bộ") or (layer == 1 and layerOpt == "Lớn")
+
+// kết thúc một đường đang kéo dài, đưa vào danh sách hình đã xong (xóa sau khi quá nhiều)
+endLine(line l) =>
+    if not na(l)
+        line.set_x2(l, bar_index)
+        line.set_extend(l, extend.none)
+        doneLines.push(l)
+
+endBox(box b) =>
+    if not na(b)
+        box.set_right(b, bar_index)
+        box.set_extend(b, extend.none)
+        doneBoxes.push(b)
+
+// ---------- Vùng OB / Breaker / FVG / IFVG ----------
+zoneLife(int kind) => kind == K_OB ? SONG_OB : kind == K_BRK ? SONG_BRK : kind == K_FVG ? SONG_FVG : SONG_IFVG
+
+finishZone(Zone z) =>
+    endBox(z.bx)
+    endLine(z.mid)
+
+pushZone(array<Zone> arr, Zone z) =>
+    if arr.size() >= MAX_VUNG
+        finishZone(arr.shift())
+    arr.push(z)
+
+drawZone(Zone z, int left) =>
+    bool isOb = z.kind == K_OB or z.kind == K_BRK
+    bool show = z.kind == K_OB ? showOb : z.kind == K_BRK ? showBrk : z.kind == K_FVG ? showFvg : showIfvg
+    if show and (not isOb or layerOn(z.layer))
+        color  c    = dirColor(z.dir)
+        bool   orig = z.kind == K_OB or z.kind == K_FVG
+        string txt  = z.kind == K_OB ? (z.layer == 1 ? "OB lớn" : "OB") : z.kind == K_BRK ? "Breaker" : z.kind == K_FVG ? "FVG" : "IFVG"
+        z.bx := box.new(clampX(left), z.top, bar_index + 1, z.bot, border_color = color.new(c, orig ? 50 : 30), border_width = 1, border_style = orig ? line.style_solid : line.style_dashed, extend = extend.right, bgcolor = color.new(c, isOb ? 82 : 88), text = txt, text_size = size.tiny, text_color = color.new(c, 20), text_halign = text.align_left, text_valign = text.align_top)
+        if showMid and not isOb
+            float m = (z.top + z.bot) / 2
+            z.mid := line.new(clampX(left), m, bar_index + 1, m, extend = extend.right, color = color.new(c, 40), style = line.style_dotted, width = 1)
+
+// Mỗi nến đóng: chạm, hỏng (giá đóng qua mép xa), hết hạn. OB hỏng -> Breaker; FVG hỏng -> IFVG.
+stepZones(array<Zone> arr) =>
+    if arr.size() > 0
+        for k = arr.size() - 1 to 0
+            Zone z = arr.get(k)
+            if z.born < bar_index
+                bool up = z.dir > 0
+                if not z.touched and (up ? low <= z.top : high >= z.bot)
+                    z.touched := true
+                if up ? close < z.bot : close > z.top
+                    finishZone(z)
+                    arr.remove(k)
+                    if z.kind == K_OB or z.kind == K_FVG
+                        Zone flip = Zone.new(-z.dir, z.kind == K_OB ? K_BRK : K_IFVG, z.layer, z.top, z.bot, atr14, bar_index, na)
+                        drawZone(flip, bar_index)
+                        pushZone(z.kind == K_OB ? brkZones : ifvgZones, flip)
+                else if bar_index - z.born >= zoneLife(z.kind)
+                    arr.remove(k)
+                    finishZone(z)
+
+// FVG mới nhất cùng chiều, còn mới (chưa bị chạm), có nến giữa nằm sau chân cú phá
+findFvg(int d, int legBar) =>
+    Zone res = na
+    if fvgZones.size() > 0
+        for k = fvgZones.size() - 1 to 0
+            Zone z = fvgZones.get(k)
+            if z.midBar <= legBar
+                break
+            if z.dir == d and not z.touched
+                res := z
+                break
+    res
+
+// ---------- Mức thanh khoản (đỉnh/đáy 5 nến) ----------
+// Trả về giá mức bị quét ở nến này (na nếu không có). Giá đóng qua mức thì mức hết.
+stepLevels(array<Level> arr, bool isHigh) =>
+    float swept = na
+    if arr.size() > 0
+        for k = arr.size() - 1 to 0
+            Level lv = arr.get(k)
+            if lv.born < bar_index
+                if isHigh ? close > lv.price : close < lv.price
+                    endLine(lv.ln)
+                    arr.remove(k)
+                else
+                    if not lv.swept and (isHigh ? (high > lv.price and close < lv.price) : (low < lv.price and close > lv.price))
+                        lv.swept := true
+                        swept := lv.price
+                    if bar_index - lv.born >= SONG_MUC
+                        endLine(lv.ln)
+                        arr.remove(k)
+    swept
+
+addLevel(array<Level> arr, bool isHigh, float price, int pBar) =>
+    Level lv = Level.new(isHigh, price, bar_index)
+    if showSr
+        lv.ln := line.new(clampX(pBar), price, bar_index + 1, price, extend = extend.right, color = color.new(isHigh ? cDn : cUp, 30), style = line.style_dotted, width = 1)
+    if arr.size() >= MAX_VUNG
+        Level old = arr.shift()
+        endLine(old.ln)
+    arr.push(lv)
+
+// EQH / EQL: đỉnh (đáy) này và đỉnh (đáy) liền trước lệch không quá 0,1 ATR
+checkEq(LastPivot lp, bool isHigh, float price, int pBar) =>
+    if showEq and not na(lp.price) and math.abs(price - lp.price) <= EQ_ATR * atr14
+        color c = isHigh ? cDn : cUp
+        doneLines.push(line.new(clampX(lp.pBar), lp.price, pBar, price, color = c, style = line.style_dashed, width = 1))
+        float lvl = isHigh ? math.max(price, lp.price) : math.min(price, lp.price)
+        label.new(bar_index, lvl, isHigh ? "EQH" : "EQL", style = isHigh ? label.style_label_down : label.style_label_up, color = color.new(c, 100), textcolor = c, size = size.tiny, tooltip = (isHigh ? "Hai đỉnh" : "Hai đáy") + " liền nhau gần bằng nhau (lệch không quá 0,1 ATR): " + fmt(lp.price) + " và " + fmt(price) + ".")
+    lp.price := price
+    lp.pBar  := pBar
+
+// ---------- MSNR ----------
+snrColor(Snr s) => s.flipped ? (s.side > 0 ? #3F51B5 : #E91E63) : (s.isA ? #FF5722 : #009688)
+
+newSnrLine(Snr s, int x) =>
+    line.new(x, s.price, bar_index + 1, s.price, extend = extend.right, color = snrColor(s), style = s.fresh ? line.style_solid : line.style_dotted, width = 1)
+
+// Đóng qua mức -> lật vai trò, coi như mới. Râu chạm mà đóng không qua -> đã chạm. Sống 100 nến.
+// Đổi màu / kiểu nét ngay trên đường đang có (mỗi mức một đường), không vẽ đoạn mới:
+// nhiều đoạn mới sẽ đẩy các đường khác (BOS/CHoCH, dừng lỗ/chốt lời, EQH/EQL) ra khỏi giới hạn hình.
+stepSnr() =>
+    if snrLevels.size() > 0
+        for k = snrLevels.size() - 1 to 0
+            Snr s = snrLevels.get(k)
+            if s.born < bar_index
+                bool ended = bar_index - s.born >= SONG_MSNR
+                if not ended and (s.side < 0 ? close > s.price : close < s.price)
+                    s.side    := -s.side
+                    s.flipped := true
+                    s.fresh   := true
+                    line.set_color(s.ln, snrColor(s))
+                    line.set_style(s.ln, line.style_solid)
+                else if not ended and s.fresh and (s.side < 0 ? high >= s.price : low <= s.price)
+                    s.fresh := false
+                    line.set_style(s.ln, line.style_dotted)
+                if ended
+                    endLine(s.ln)
+                    snrLevels.remove(k)
+
+// ---------- Điểm vào lệnh ----------
+// Dừng lỗ (Lần đo 2): mua = đáy lớn gần nhất (về thời gian) có giá <= mốc, trừ 0,1 ATR; không có thì mốc - 0,1 ATR.
+// Bán = đỉnh lớn gần nhất có giá >= mốc, cộng 0,1 ATR. Mốc: FVG / OB = mép xa của vùng, QUET = râu nến quét, ICT = râu cú quét.
+wideSl(int d, float base, float atrv) =>
+    array<float> arr = d > 0 ? bigLows : bigHighs
+    float p = na
+    if arr.size() > 0
+        for k = arr.size() - 1 to 0
+            float v = arr.get(k)
+            if d > 0 ? v <= base : v >= base
+                p := v
+                break
+    (na(p) ? base : p) - d * DEM_ATR * atrv
+
+// Lọc chiều theo H1 (chỉ nến H1 đã đóng). Chưa biết xu hướng / phía EMA thì không lấy lệnh.
+dirOk(int d) =>
+    dirOpt == "Tất cả tín hiệu" or (dirOpt == "Theo xu hướng H1" ? nz(h1Trend) : nz(h1Ema)) == d
+
+// mỗi lớp cấu trúc có lệnh riêng (luật hủy khi phá ngược chiều tính theo từng lớp)
+setupExists(string name, int d, int layer, float entry, float sl) =>
+    bool found = false
+    for su in setups
+        if su.name == name and su.dir == d and su.layer == layer and su.entry == entry and su.sl == sl
+            found := true
+            break
+    found
+
+endSetup(Setup su) =>
+    endLine(su.lnEntry)
+    endLine(su.lnSl)
+    endLine(su.lnTp)
+
+pushSetup(Setup su) =>
+    if setups.size() >= MAX_LENH
+        endSetup(setups.shift())
+    setups.push(su)
+
+// dừng lỗ / chốt lời: nét đứt ĐẬM, hơi nhạt, để không lẫn với vạch BOS/CHoCH nội bộ (nét đứt mảnh)
+drawSetupLines(Setup su) =>
+    su.lnEntry := line.new(bar_index, su.entry, bar_index + 1, su.entry, extend = extend.right, color = #787B86, style = line.style_solid, width = 1)
+    su.lnSl    := line.new(bar_index, su.sl, bar_index + 1, su.sl, extend = extend.right, color = color.new(cDn, 30), style = line.style_dashed, width = 2)
+    su.lnTp    := line.new(bar_index, su.tp, bar_index + 1, su.tp, extend = extend.right, color = color.new(cUp, 30), style = line.style_dashed, width = 2)
+
+setupDesc(string name) =>
+    switch name
+        "FVG"      => "Sau khi phá cấu trúc (BOS hoặc CHoCH), chờ giá quay về FVG mới nhất nằm trong cú phá, FVG còn mới (chưa bị chạm)."
+        "OB-CHoCH" => "Sau CHoCH (đổi xu hướng), chờ giá quay về OB của cú phá."
+        "OB-BOS"   => "Sau BOS (đi tiếp xu hướng), chờ giá quay về OB của cú phá."
+        "QUET"     => "Giá quét qua mức thanh khoản rồi đóng quay lại. Vào ở giá mở nến kế tiếp."
+        => "Quét thanh khoản, trong 20 nến có CHoCH lớp nội bộ; chờ giá về FVG của cú đảo (không có FVG thì OB)."
+
+cancelDesc(Setup su) =>
+    string t = ""
+    if su.state == 2
+        t := "không có (vào ngay giá mở nến sau)"
+    else
+        t := "giá mở nến sau đã vượt giá đặt (không đặt được lệnh); quá " + str.tostring(su.maxWait) + " nến; giá đóng " + (su.dir > 0 ? "dưới đáy vùng" : "trên đỉnh vùng")
+        if su.cancelOnTp
+            t += "; giá chạm mức chốt lời trước"
+        if su.cancelOnOpp
+            t += "; cấu trúc cùng lớp phá ngược chiều"
+    t
+
+setupTip(Setup su) =>
+    string e  = su.state == 2 ? "giá mở nến kế tiếp" : fmt(su.entry) + " (lệnh chờ giới hạn)"
+    string tp = su.state == 2 ? tpOpt + " tính từ giá vào" : fmt(su.tp) + " (" + tpOpt + ")"
+    string lop = su.layer == 0 ? " (lớp nội bộ)" : su.layer == 1 ? " (lớp lớn)" : ""
+    bool   up  = su.dir > 0
+    string moc = su.name == "FVG" ? (up ? "đáy FVG" : "đỉnh FVG") : su.name == "QUET" ? (up ? "đáy râu nến quét" : "đỉnh râu nến quét") : su.name == "ICT" ? (up ? "đáy cú quét" : "đỉnh cú quét") : (up ? "đáy OB" : "đỉnh OB")
+    string sl = fmt(su.sl) + " = " + (up ? "đáy lớn (20 nến) gần nhất không cao hơn " : "đỉnh lớn (20 nến) gần nhất không thấp hơn ") + moc + (up ? ", trừ" : ", cộng") + " 0,1 ATR; không có thì lấy " + moc + (up ? " trừ" : " cộng") + " 0,1 ATR"
+    (up ? "MUA" : "BÁN") + " theo cách " + su.name + lop + ": CHƯA KIỂM CHỨNG\n" + setupDesc(su.name) + "\nGiá vào: " + e + "\nDừng lỗ: " + sl + "\nChốt lời: " + tp + " (R = khoảng từ giá vào tới dừng lỗ)\nLọc chiều: " + dirOpt + "\nHủy nếu chưa khớp: " + cancelDesc(su) + "\nSmcLab chưa đo xong, chưa biết cách này có lợi thế hay không. Không dùng tiền thật theo dấu này."
+
+// Lệnh chờ giới hạn. Trả về true nếu hình dạng lệnh hợp lệ. Lệnh ngược chiều bộ lọc H1 thì không vẽ, không theo dõi.
+newLimitSetup(string name, int d, int layer, float entry, float sl, float tp, float zTop, float zBot, int wait, bool cTp, bool cOpp) =>
+    bool ok = d > 0 ? sl < entry and entry < tp : sl > entry and entry > tp
+    if ok and dirOk(d) and not setupExists(name, d, layer, entry, sl)
+        Setup su = Setup.new(name = name, dir = d, layer = layer, entry = entry, sl = sl, tp = tp, zTop = zTop, zBot = zBot, born = bar_index, maxWait = wait, cancelOnTp = cTp, cancelOnOpp = cOpp, state = 0)
+        drawSetupLines(su)
+        pushSetup(su)
+        // các lệnh mở cùng nến, cùng chiều, cùng giá vào dùng chung một nhãn (không để chữ đè lên nhau)
+        label  lb    = na
+        string names = ""
+        string tips  = ""
+        for o in setups
+            if o.born == bar_index and o.dir == d and o.entry == entry
+                if na(lb)
+                    lb := o.lb
+                if not str.contains(names, o.name)
+                    names += (names == "" ? "" : " + ") + o.name
+                tips += (tips == "" ? "" : "\n\n") + setupTip(o)
+        string txt = names + (d > 0 ? " · Mua" : " · Bán") + "\nchưa kiểm chứng"
+        if na(lb)
+            color c = dirColor(d)
+            lb := label.new(bar_index, entry, "", style = label.style_label_left, color = color.new(c, 80), textcolor = c, size = size.small)
+        label.set_text(lb, txt)
+        label.set_tooltip(lb, tips)
+        su.lb := lb
+    ok
+
+// QUET: biết ở nến quét, vào ở giá mở nến kế tiếp. Lệnh ngược chiều bộ lọc H1 thì bỏ.
+newQuet(int d, float sl) =>
+    if dirOk(d)
+        Setup su = Setup.new(name = "QUET", dir = d, layer = -1, sl = sl, born = bar_index, maxWait = 0, cancelOnTp = false, cancelOnOpp = false, state = 2)
+        color c = dirColor(d)
+        label.new(bar_index, d > 0 ? low : high, "QUET · " + (d > 0 ? "Mua" : "Bán") + "\nchưa kiểm chứng", style = d > 0 ? label.style_label_up : label.style_label_down, color = color.new(c, 80), textcolor = c, size = size.small, tooltip = setupTip(su))
+        pushSetup(su)
+
+fillMark(Setup su, float price) =>
+    label.new(bar_index, price, "", style = su.dir > 0 ? label.style_triangleup : label.style_triangledown, color = dirColor(su.dir), size = size.tiny, tooltip = "Khớp lệnh " + (su.dir > 0 ? "mua " : "bán ") + su.name + " ở " + fmt(price) + " (chưa kiểm chứng)")
+
+exitMark(Setup su, bool win) =>
+    float y = win ? su.tp : su.sl
+    label.new(bar_index, y, win ? "✓" : "✗", style = label.style_none, textcolor = win ? cUp : cDn, size = size.normal, tooltip = (win ? "Chạm chốt lời " : "Chạm dừng lỗ ") + su.name + " ở " + fmt(y))
+    endSetup(su)
+
+cancelMark(Setup su, float y, string why) =>
+    label.new(bar_index, y, "hủy", style = label.style_none, textcolor = #787B86, size = size.tiny, tooltip = "Hủy lệnh chờ " + su.name + ": " + why)
+    endSetup(su)
+
+// Mỗi nến đóng: khớp, dừng lỗ, chốt lời, hủy. Khi không rõ thứ tự trong một nến, chọn kết quả xấu hơn cho lệnh.
+stepSetups() =>
+    if setups.size() > 0
+        for k = setups.size() - 1 to 0
+            Setup su = setups.get(k)
+            if su.born < bar_index
+                int  d    = su.dir
+                bool done = false
+                if su.state == 2
+                    if d > 0 ? open <= su.sl : open >= su.sl
+                        cancelMark(su, open, "giá mở nến sau đã vượt mức dừng lỗ")
+                        done := true
+                    else
+                        su.entry := open
+                        su.tp    := open + d * tpR * math.abs(open - su.sl)
+                        su.state := 1
+                        drawSetupLines(su)
+                        fillMark(su, open)
+                if not done
+                    bool hitSl = d > 0 ? low <= su.sl : high >= su.sl
+                    bool hitTp = d > 0 ? high >= su.tp : low <= su.tp
+                    if su.state == 1
+                        if hitSl
+                            exitMark(su, false)
+                            done := true
+                        else if hitTp
+                            exitMark(su, true)
+                            done := true
+                    else
+                        bool  gapIn    = d > 0 ? open <= su.entry : open >= su.entry
+                        bool  hitEntry = d > 0 ? low <= su.entry : high >= su.entry
+                        // giá mở nhảy qua giá đặt thì khớp ở giá tốt hơn (giá mở)
+                        float fillPx   = d > 0 ? math.min(open, su.entry) : math.max(open, su.entry)
+                        if gapIn and bar_index == su.born + 1
+                            // như SmcLab: lúc đặt lệnh (giá mở nến ngay sau) giá đã ở bên kia giá đặt thì không đặt được lệnh
+                            cancelMark(su, su.entry, "giá đã vượt mức đặt: giá mở nến sau " + fmt(open) + (d > 0 ? " không cao hơn" : " không thấp hơn") + " giá đặt " + fmt(su.entry) + ", lệnh chờ không đặt được")
+                            done := true
+                        else if gapIn
+                            // khớp ngay ở giá mở nên chắc chắn khớp trước, rồi mới xét dừng lỗ / chốt lời trong nến
+                            fillMark(su, fillPx)
+                            su.state := 1
+                            if hitSl
+                                exitMark(su, false)
+                                done := true
+                            else if hitTp
+                                exitMark(su, true)
+                                done := true
+                        else if hitSl
+                            fillMark(su, fillPx)
+                            exitMark(su, false)
+                            done := true
+                        else if hitEntry and hitTp and su.cancelOnTp
+                            cancelMark(su, su.entry, "cùng một nến vừa chạm giá vào vừa chạm mức chốt lời, không rõ cái nào trước; coi như chốt lời tới trước")
+                            done := true
+                        else if hitTp and su.cancelOnTp
+                            cancelMark(su, su.entry, "giá chạy tới mức chốt lời trước khi khớp")
+                            done := true
+                        else if hitEntry
+                            fillMark(su, fillPx)
+                            su.state := 1
+                        else if (d > 0 ? close < su.zBot : close > su.zTop)
+                            cancelMark(su, su.entry, "giá đóng " + (d > 0 ? "dưới đáy vùng" : "trên đỉnh vùng"))
+                            done := true
+                        else if bar_index - su.born >= su.maxWait
+                            cancelMark(su, su.entry, "quá " + str.tostring(su.maxWait) + " nến chưa khớp")
+                            done := true
+                if done
+                    setups.remove(k)
+
+// Cấu trúc cùng lớp phá ngược chiều: hủy các lệnh chờ có luật này
+cancelOpposite(int layer, int d) =>
+    if setups.size() > 0
+        for k = setups.size() - 1 to 0
+            Setup su = setups.get(k)
+            if su.state == 0 and su.cancelOnOpp and su.layer == layer and su.dir == -d
+                cancelMark(su, su.entry, "cấu trúc cùng lớp phá ngược chiều")
+                setups.remove(k)
+
+fvgSetup(Zone z, int layer) =>
+    float e  = z.dir > 0 ? z.top : z.bot
+    float sl = wideSl(z.dir, z.dir > 0 ? z.bot : z.top, z.atrv)
+    newLimitSetup("FVG", z.dir, layer, e, sl, e + z.dir * tpR * math.abs(e - sl), z.top, z.bot, CHO_FVG, true, true)
+
+// ICT: đặt lệnh lúc đóng nến CHoCH, hoặc nến ngay sau nó khi phải chờ FVG. Vùng = FVG mới nhất của cú đảo;
+// không có FVG thì OB, nếu OB còn mới (nến chờ chưa chạm, chưa đóng qua). Dừng lỗ tính từ râu cú quét,
+// đệm theo ATR lúc đặt lệnh. Chốt lời theo R như các cách khác.
+ictSetup(IctWait w) =>
+    int   d   = w.dir
+    Zone  fvg = findFvg(d, w.leg)
+    float top = w.obTop
+    float bot = w.obBot
+    if not na(fvg)
+        top := fvg.top
+        bot := fvg.bot
+    else if bar_index > w.brk and (d > 0 ? (low <= top or close < bot) : (high >= bot or close > top))
+        top := na
+    if not na(top)
+        float e  = d > 0 ? top : bot
+        float sl = wideSl(d, w.ext, atr14)
+        newLimitSetup("ICT", d, 0, e, sl, e + d * tpR * math.abs(e - sl), top, bot, CHO_ICT, false, false)
+
+// ---------- Cấu trúc (một lớp) ----------
+setHigh(Swing s, int p, float price) =>
+    s.hPrice   := price
+    s.hBar     := p
+    s.hBroken  := false
+    s.lastType := 1
+    s.loMin    := na
+    s.loMinHi  := na
+    s.loMinBar := na
+    // nến có low thấp nhất trong các nến p+1 .. nến trước (bằng nhau thì lấy nến sớm nhất)
+    int nFrom = bar_index - p - 1
+    if nFrom >= 1
+        for k = nFrom to 1
+            if na(s.loMin) or low[k] < s.loMin
+                s.loMin    := low[k]
+                s.loMinHi  := high[k]
+                s.loMinBar := bar_index - k
+
+setLow(Swing s, int p, float price) =>
+    s.lPrice   := price
+    s.lBar     := p
+    s.lBroken  := false
+    s.lastType := -1
+    s.hiMax    := na
+    s.hiMaxLo  := na
+    s.hiMaxBar := na
+    int nFrom = bar_index - p - 1
+    if nFrom >= 1
+        for k = nFrom to 1
+            if na(s.hiMax) or high[k] > s.hiMax
+                s.hiMax    := high[k]
+                s.hiMaxLo  := low[k]
+                s.hiMaxBar := bar_index - k
+
+// Ghi giá đỉnh/đáy lớp lớn (để tìm dừng lỗ). replace = đỉnh liền đỉnh cao hơn (đáy liền đáy thấp hơn) thay cho cái cuối.
+recordSwing(array<float> arr, float price, bool replace) =>
+    if replace and arr.size() > 0
+        arr.set(arr.size() - 1, price)
+    else
+        if arr.size() >= MAX_DINH
+            arr.shift()
+        arr.push(price)
+
+// Đỉnh liền sau một đỉnh: chỉ giữ nếu cao hơn. Đáy tương tự.
+addSwingHigh(Swing s, float price) =>
+    if s.lastType != 1 or price > s.hPrice
+        if s.layer == 1
+            recordSwing(bigHighs, price, s.lastType == 1)
+        setHigh(s, bar_index - s.n, price)
+
+addSwingLow(Swing s, float price) =>
+    if s.lastType != -1 or price < s.lPrice
+        if s.layer == 1
+            recordSwing(bigLows, price, s.lastType == -1)
+        setLow(s, bar_index - s.n, price)
+
+// Đỉnh/đáy vừa xác nhận (nằm ở n nến trước); cùng một nến thì xử lý loại ngược với loại cuối trước
+addPivots(Swing s, bool pH, bool pL, float hiP, float loP) =>
+    if pH and pL and s.lastType == 1
+        addSwingLow(s, loP)
+        addSwingHigh(s, hiP)
+    else
+        if pH
+            addSwingHigh(s, hiP)
+        if pL
+            addSwingLow(s, loP)
+
+// Phá cấu trúc ở nến này (d = +1 phá lên, -1 phá xuống)
+onBreak(Swing s, int d, Marks m, Sweep swLo, Sweep swHi) =>
+    bool  up   = d > 0
+    int   kind = s.trend == -d ? 2 : s.trend == d ? 1 : 0     // 2 CHoCH, 1 BOS, 0 lần phá đầu (không tính)
+    float lvl  = up ? s.hPrice : s.lPrice
+    int   pBar = up ? s.hBar : s.lBar
+    if up
+        s.hBroken := true
+    else
+        s.lBroken := true
+    s.trend := d
+    // nến cực trị của chân: low thấp nhất (phá lên) trong các nến sau đỉnh bị phá tới nến TRƯỚC nến phá (cũng là nến OB)
+    int legBar = up ? s.loMinBar : s.hiMaxBar
+    if s.layer == 0 ? showStrInt : showStrBig
+        color c = dirColor(d)
+        doneLines.push(line.new(clampX(pBar), lvl, bar_index, lvl, color = c, style = s.layer == 0 ? line.style_dashed : line.style_solid, width = s.layer == 0 ? 1 : 2))
+        string what = kind == 2 ? "CHoCH: đổi xu hướng" : kind == 1 ? "BOS: đi tiếp xu hướng" : "BOS đầu tiên (trước đó chưa có xu hướng, không tính)"
+        string tip  = what + (up ? " tăng" : " giảm") + ", lớp " + (s.layer == 0 ? "nội bộ (5 nến)" : "lớn (20 nến)") + ". Giá đóng " + (up ? "trên đỉnh " : "dưới đáy ") + fmt(lvl) + "."
+        label.new(bar_index, lvl, kind == 2 ? "CHoCH" : "BOS", style = up ? label.style_label_down : label.style_label_up, color = color.new(c, 100), textcolor = c, size = s.layer == 0 ? size.tiny : size.small, tooltip = tip)
+    // OB: nến low thấp nhất (phá lên) / high cao nhất (phá xuống) giữa đỉnh/đáy bị phá và nến phá, không gồm nến phá
+    float obTop = up ? s.loMinHi : s.hiMax
+    float obBot = up ? s.loMin : s.hiMaxLo
+    int   obBar = up ? s.loMinBar : s.hiMaxBar
+    Zone  ob    = na
+    if not na(obBar) and obTop - obBot <= OB_MAX_ATR * atr14
+        ob := Zone.new(d, K_OB, s.layer, obTop, obBot, atr14, bar_index, na)
+        drawZone(ob, obBar)
+        pushZone(obZones, ob)
+        if showOb and layerOn(s.layer)
+            if up
+                m.obUp := (obTop + obBot) / 2
+            else
+                m.obDn := (obTop + obBot) / 2
+    cancelOpposite(s.layer, d)
+    // điểm vào lệnh (lần phá đầu không tính)
+    if kind > 0 and not na(legBar)
+        // nến phá có thể là nến giữa của một FVG (FVG đó chỉ xuất hiện lúc đóng nến sau):
+        // khi đó chờ đóng nến sau rồi mới chọn FVG, cho cả cách FVG và ICT
+        bool canMid = (up ? close > high[1] : close < low[1]) and not isGap
+        if layerOn(s.layer)
+            if not na(ob) and (kind == 2 ? onObChoch : onObBos)
+                float e  = up ? ob.top : ob.bot
+                float sl = wideSl(d, up ? ob.bot : ob.top, ob.atrv)
+                newLimitSetup(kind == 2 ? "OB-CHoCH" : "OB-BOS", d, s.layer, e, sl, e + d * tpR * math.abs(e - sl), ob.top, ob.bot, CHO_OB, true, true)
+            if onFvg
+                if canMid
+                    s.waitDir := d
+                    s.waitBar := bar_index
+                    s.waitLeg := legBar
+                else
+                    Zone fvg = findFvg(d, legBar)
+                    if not na(fvg)
+                        fvgSetup(fvg, s.layer)
+        if onIct and s.layer == 0 and kind == 2
+            Sweep sw = up ? swLo : swHi
+            if not sw.used and bar_index - sw.sBar <= ICT_NEN
+                // mỗi cú quét dùng một lần, kể cả khi không đặt được lệnh
+                sw.used := true
+                float obT = na
+                float obB = na
+                if not na(ob)
+                    obT := ob.top
+                    obB := ob.bot
+                IctWait w = IctWait.new(d, bar_index, legBar, sw.ext, obT, obB)
+                s.ictWait := canMid ? w : na
+                if not canMid
+                    ictSetup(w)
+
+processLayer(Swing s, Marks m, Sweep swLo, Sweep swHi) =>
+    int oldDir = s.waitDir
+    int oldBar = s.waitBar
+    int oldLeg = s.waitLeg
+    IctWait oldIct = s.ictWait
+    s.waitDir := 0
+    s.ictWait := na
+    // 1. đỉnh/đáy vừa xác nhận: đã thêm trước bằng addPivots (để dừng lỗ mọi lệnh ở nến này dùng cả đỉnh/đáy lớn vừa xác nhận)
+    // 2. phá cấu trúc bằng giá đóng
+    if not s.hBroken and close > s.hPrice
+        onBreak(s, 1, m, swLo, swHi)
+    if not s.lBroken and close < s.lPrice
+        onBreak(s, -1, m, swLo, swHi)
+    // 3. nến ngay sau nến phá, chưa có lần phá ngược chiều cùng lớp: chọn FVG mới nhất trong cú phá (mới xuất hiện hay có từ trước)
+    if oldDir != 0 and oldBar == bar_index - 1 and s.trend == oldDir and onFvg and layerOn(s.layer)
+        Zone z = findFvg(oldDir, oldLeg)
+        if not na(z)
+            fvgSetup(z, s.layer)
+    if not na(oldIct) and oldIct.brk == bar_index - 1 and s.trend == oldIct.dir
+        ictSetup(oldIct)
+    // 4. thêm nến này vào phần theo dõi low thấp nhất / high cao nhất
+    if na(s.loMin) or low < s.loMin
+        s.loMin    := low
+        s.loMinHi  := high
+        s.loMinBar := bar_index
+    if na(s.hiMax) or high > s.hiMax
+        s.hiMax    := high
+        s.hiMaxLo  := low
+        s.hiMaxBar := bar_index
+
+// ---------- Chạy trên nến đã đóng ----------
+if barstate.isconfirmed and not na(atr14)
+    // 1. lệnh đang theo dõi
+    stepSetups()
+    // 2. vùng cũ: chạm, hỏng, hết hạn
+    stepZones(brkZones)
+    stepZones(ifvgZones)
+    stepZones(obZones)
+    stepZones(fvgZones)
+    // 3. FVG mới
+    if fvgUp or fvgDn
+        int   d = fvgUp ? 1 : -1
+        float t = fvgUp ? low : low[2]
+        float b = fvgUp ? high[2] : high
+        Zone  z = Zone.new(d, K_FVG, -1, t, b, atr14, bar_index, bar_index - 1)
+        drawZone(z, bar_index - 2)
+        pushZone(fvgZones, z)
+        if showFvg
+            if fvgUp
+                mk.fvgUp := (t + b) / 2
+            else
+                mk.fvgDn := (t + b) / 2
+    // 3b. đỉnh/đáy vừa xác nhận của hai lớp cấu trúc, trước khi đặt bất kỳ lệnh nào ở nến này (như SmcLab)
+    addPivots(swInt, pivH5, pivL5, hi5, lo5)
+    addPivots(swBig, pivH20, pivL20, hi20, lo20)
+    // 4. mức thanh khoản cũ: bị phá, bị quét
+    float sweptHi = stepLevels(hiLevels, true)
+    float sweptLo = stepLevels(loLevels, false)
+    if not na(sweptHi)
+        swpHigh.sBar := bar_index
+        swpHigh.ext  := high
+        swpHigh.used := false
+        if showSweep
+            label.new(bar_index, sweptHi, "", style = label.style_xcross, color = cDn, size = size.tiny, tooltip = "Quét thanh khoản bên mua: râu lên trên đỉnh " + fmt(sweptHi) + " rồi giá đóng lại bên dưới.")
+        if onQuet
+            newQuet(-1, wideSl(-1, high, atr14))
+    if not na(sweptLo)
+        swpLow.sBar := bar_index
+        swpLow.ext  := low
+        swpLow.used := false
+        if showSweep
+            label.new(bar_index, sweptLo, "", style = label.style_xcross, color = cUp, size = size.tiny, tooltip = "Quét thanh khoản bên bán: râu xuống dưới đáy " + fmt(sweptLo) + " rồi giá đóng lại bên trên.")
+        if onQuet
+            newQuet(1, wideSl(1, low, atr14))
+    // 5. đỉnh/đáy 5 nến mới xác nhận: mức thanh khoản, kháng cự / hỗ trợ, EQH / EQL
+    if pivH5
+        addLevel(hiLevels, true, hi5, bar_index - N_NOI_BO)
+        checkEq(lastPH, true, hi5, bar_index - N_NOI_BO)
+        if showSr
+            mk.pivHi := hi5
+    if pivL5
+        addLevel(loLevels, false, lo5, bar_index - N_NOI_BO)
+        checkEq(lastPL, false, lo5, bar_index - N_NOI_BO)
+        if showSr
+            mk.pivLo := lo5
+    // 6. cấu trúc hai lớp, OB và điểm vào lệnh
+    processLayer(swInt, mk, swpLow, swpHigh)
+    processLayer(swBig, mk, swpLow, swpHigh)
+    // 7. MSNR: cặp (xanh, đỏ) -> mức A; (đỏ, xanh) -> mức V; giá = giá đóng nến đầu
+    if showMsnr
+        stepSnr()
+        bool g1 = close[1] > open[1]
+        bool r1 = close[1] < open[1]
+        bool g0 = close > open
+        bool r0 = close < open
+        if (g1 and r0) or (r1 and g0)
+            Snr s = Snr.new(side = g1 ? -1 : 1, isA = g1, price = close[1], born = bar_index)
+            s.ln := newSnrLine(s, bar_index - 1)
+            if snrLevels.size() >= MAX_VUNG
+                Snr old = snrLevels.shift()
+                endLine(old.ln)
+            snrLevels.push(s)
+    // 8. quá nhiều hình thì xóa hình cũ đã xong trước (không xóa hình đang dùng)
+    while array.size(line.all) > GIU_HINH and doneLines.size() > 0
+        line.delete(doneLines.shift())
+    while array.size(box.all) > GIU_HINH and doneBoxes.size() > 0
+        box.delete(doneBoxes.shift())
+
+// ---------- Vẽ đường, chấm, bảng ----------
+plot(showE20 and barstate.isconfirmed ? ema20 : na, "EMA 20", color = #FFC107)
+plot(showE50 and barstate.isconfirmed ? ema50 : na, "EMA 50", color = #2196F3)
+plot(showE200 and barstate.isconfirmed ? ema200 : na, "EMA 200", color = #9C27B0, linewidth = 2)
+bool bbOn = showBb and barstate.isconfirmed
+pBbUp = plot(bbOn ? bbUp : na, "Bollinger trên", color = color.new(#787B86, 30))
+pBbLo = plot(bbOn ? bbLo : na, "Bollinger dưới", color = color.new(#787B86, 30))
+plot(bbOn ? bbMid : na, "Bollinger giữa", color = color.new(#FF6D00, 30))
+fill(pBbUp, pBbLo, color = color.new(#787B86, 93), title = "Nền Bollinger")
+
+// chấm tròn = nến mà vùng / mức thật sự xuất hiện
+plotshape(mk.obUp, "OB mua xuất hiện", shape.circle, location.absolute, cUp, size = size.tiny)
+plotshape(mk.obDn, "OB bán xuất hiện", shape.circle, location.absolute, cDn, size = size.tiny)
+plotshape(mk.fvgUp, "FVG mua xuất hiện", shape.circle, location.absolute, color.new(cUp, 40), size = size.tiny)
+plotshape(mk.fvgDn, "FVG bán xuất hiện", shape.circle, location.absolute, color.new(cDn, 40), size = size.tiny)
+plotshape(mk.pivHi, "Đỉnh 5 nến được xác nhận", shape.circle, location.absolute, color.new(cDn, 60), size = size.tiny)
+plotshape(mk.pivLo, "Đáy 5 nến được xác nhận", shape.circle, location.absolute, color.new(cUp, 60), size = size.tiny)
+
+// nền đặc theo màu nền biểu đồ, để chữ đọc được khi đè lên hộp và vạch màu ở mép phải
+var table rsiTab = showRsi ? table.new(position.top_right, 2, 2, bgcolor = color.new(chart.bg_color, 5), frame_color = color.new(#787B86, 50), frame_width = 1, border_width = 1) : na
+float rsiLast = barstate.isconfirmed ? rsi14 : rsi14[1]
+if showRsi and barstate.islast
+    string st  = rsiLast >= 70 ? "Quá mua (≥ 70)" : rsiLast <= 30 ? "Quá bán (≤ 30)" : "Bình thường"
+    color  rc  = rsiLast >= 70 ? cDn : rsiLast <= 30 ? cUp : chart.fg_color
+    string tip = "RSI(14) của nến đã đóng gần nhất. Muốn xem đường RSI thì thêm chỉ báo RSI có sẵn của TradingView."
+    table.cell(rsiTab, 0, 0, "RSI(14)", text_color = chart.fg_color, text_size = size.small, tooltip = tip)
+    table.cell(rsiTab, 1, 0, str.tostring(rsiLast, "#.0"), text_color = rc, text_size = size.small, tooltip = tip)
+    table.cell(rsiTab, 0, 1, "Trạng thái", text_color = chart.fg_color, text_size = size.small)
+    table.cell(rsiTab, 1, 1, st, text_color = rc, text_size = size.small)

@@ -1,0 +1,57 @@
+# Máy cá nhân, phiên trợ lý và cấu hình đăng nhập
+/.claude/
+/.codex/
+/.gstack/
+/.vscode/
+/.idea/
+/local/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+credentials*.json
+accounts*.dat
+
+# Hướng dẫn chép từ dự án TradingDataHub, chỉ còn lưu trên máy
+/.agents/skills/tradinghub-operations/
+/.agents/skills/trading-analysis-quality/
+/CODEX_HANDOFF.md
+
+# Sản phẩm biên dịch, nhật ký, dữ liệu giá và kết quả MT5 tạo ra
+*.ex4
+*.ex5
+*.log
+*.tmp
+*.bak
+*.old
+*.cache
+*.pyc
+__pycache__/
+*.opt
+*.tst
+*.hcc
+*.hc
+*.tkc
+*.fxt
+*.hst
+/Tester/
+/reports/raw/
+/lab/ket_qua_kham_pha.txt
+
+# Tài liệu gốc/video và bản tải của bên thứ ba: giữ trên máy, không công bố lại
+/docs/video/
+/docs/tài liệu trade/
+/docs/pine/tradingview/**/*.pine
+/docs/pine/tradingview/ket_qua_tai.csv
+/docs/research/*.html
+
+# Tệp hệ điều hành, thư mục tạm
+.DS_Store
+Thumbs.db
+Desktop.ini
+*~
+/tmp/
+/temp/

@@ -1,0 +1,4 @@
+InpStartOn=true
+InpLot=0.1
+InpMaxSpread=2.3
+InpSlipBuffer=2.3

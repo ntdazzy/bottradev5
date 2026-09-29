@@ -1,0 +1,6 @@
+InpEnabled=true
+InpRunName=scalp_v3_audit
+InpEntry=2
+InpEarlyWick=true
+InpManage=true
+InpExportCandles=true

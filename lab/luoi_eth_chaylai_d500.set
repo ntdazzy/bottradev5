@@ -1,0 +1,4 @@
+InpRunName=chaylai_d500
+InpLot=0.1
+InpStep=1.8
+InpRestartAfterStop=true

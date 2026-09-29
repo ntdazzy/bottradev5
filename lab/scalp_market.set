@@ -1,0 +1,5 @@
+InpEnabled=true
+InpRunName=scalp_v3_market
+InpEntry=0
+InpEarlyWick=false
+InpManage=true
