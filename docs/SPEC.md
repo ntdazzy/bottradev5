@@ -1192,6 +1192,9 @@ giữ nguyên. Mọi số là [THỬ NGHIỆM] trừ khi ghi khác. Chỗ tài l
 - **Mốc chạm** (L1, L4): thân / giữa râu / đầu râu — đo cả ba (mục 22.4). L2, L3, L5, L6: mép gần của vùng.
 - **Trạng thái cản**: mới (chưa chạm) → đã chạm n lần → **bị phá** → **đổi vai** (mới ở phía kia) → hết hạn (200 nến nguồn).
   "Bị phá" đo hai định nghĩa: (a) **thân nến khung nguồn đóng qua mép xa** (Rare SnR); (b) **râu vượt mép xa** (411). Mặc định dùng (a); (b) để so.
+  **[ĐỀ XUẤT, sửa 29/09 sau lượt máy thử đầu]** Mỗi cản gốc khung M15 trở lên chỉ đổi vai **một lần**; bản đổi vai giữ tuổi của cản gốc
+  (hết hạn cùng lúc). Cản tạm M5 không đổi vai. Lý do: giá dao động qua lại quanh một cản làm nó đổi vai mãi và không bao giờ hết hạn
+  (một tuần đo có 143.572 lần "bị phá" với ~4.500 cản thật).
 - Cản được biết lúc nến xác nhận cuối đóng; không dùng trước lúc đó.
 
 ### 23.3 Kịch bản

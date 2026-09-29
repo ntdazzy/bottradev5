@@ -266,7 +266,7 @@ private:
      }
 
    // Bản đổi vai của cản i sau khi bị phá (Rare SnR SBR/RBS): cùng hình học, vai ngược, mới ở phía kia.
-   void              AddFlip(int i, datetime known, int age_start, int def)
+   void              AddFlip(int i, datetime known, int def)
      {
       for(int j=0;j<m_n;j++)
          if(m_lv[j].parent==m_lv[i].id && m_lv[j].flip==m_lv[i].flip+1 && m_lv[j].fake==m_lv[i].fake && m_lv[j].alive)
@@ -277,7 +277,8 @@ private:
       z.role=-m_lv[i].role;
       z.flip=m_lv[i].flip+1; z.flip_def=def; z.wick_broken=false;
       z.cont=(m_trend!=0 && m_trend==z.role);
-      z.known_at=known; z.age_start=age_start; z.alive=true; z.dead_at=0; z.dead_why=0;
+      // Giữ tuổi (age_start) của cản gốc: bản đổi vai hết hạn cùng lúc với cản gốc.
+      z.known_at=known; z.alive=true; z.dead_at=0; z.dead_why=0;
       z.tests=0; z.cur_test=0; z.swept=true;
       ArrayInitialize(z.arm_side,0); ArrayInitialize(z.ep_open,false);
       Push(z);
@@ -439,11 +440,13 @@ public:
          if(!m_lv[i].alive || m_lv[i].tf!=tf) continue;
          if(m_lv[i].type==SIG_LV_ROUND || m_lv[i].type==SIG_LV_PD || m_lv[i].type==SIG_LV_PW) continue;
          int side=(m_lv[i].role!=0) ? m_lv[i].role : m_lv[i].side0;
-         bool flippable=(m_lv[i].type==SIG_LV_PIVOT || m_lv[i].type==SIG_LV_CLASSIC || m_lv[i].type==SIG_LV_GAP ||
-                         m_lv[i].type==SIG_LV_DOJI);
+         // Chỉ cản gốc khung M15 trở lên được đổi vai, và chỉ một lần (SPEC 23.2); cản dao động qua lại không được làm mới mãi.
+         bool flippable=(m_lv[i].flip==0 && m_lv[i].group!=SIG_G_M5TAM &&
+                         (m_lv[i].type==SIG_LV_PIVOT || m_lv[i].type==SIG_LV_CLASSIC || m_lv[i].type==SIG_LV_GAP ||
+                          m_lv[i].type==SIG_LV_DOJI));
          if((side>0 && b.c<m_lv[i].bottom-eps) || (side<0 && b.c>m_lv[i].top+eps))
            {
-            if(flippable && m_lv[i].known_at<=b.open_time) AddFlip(i,b.known_at,n,1);
+            if(flippable && m_lv[i].known_at<=b.open_time) AddFlip(i,b.known_at,1);
             Kill(i,b.close_time,1);
             continue;
            }
@@ -451,7 +454,7 @@ public:
             ((side>0 && b.l<m_lv[i].bottom-eps) || (side<0 && b.h>m_lv[i].top+eps)))
            {
             m_lv[i].wick_broken=true;
-            AddFlip(i,b.known_at,n,2);
+            AddFlip(i,b.known_at,2);
            }
          if(n-m_lv[i].age_start>SIG_LEVEL_AGE) Kill(i,b.close_time,2);
         }

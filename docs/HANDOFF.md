@@ -12,12 +12,15 @@ Sau đó (29/09): đọc lại từng trang 4 tài liệu của chủ bot (`docs
 Chủ bot duyệt hướng **HTF-ZONE 2.0** (SPEC mục 23): K1 đảo chiều ở cản mới, K2 phá rồi quay lại, K3 Unicorn, K4 đường xu hướng lần 3,
 K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo trước, EA sau.
 - Đã có công cụ đo đợt 1 `ScpSignalLab.mq5` (+ `SigLevels`, `SigDetect`, `SigTrack`, `SigReport`, `SigDraw`) và ca kiểm `SigVerify.mq5`.
-  Biên dịch 0 lỗi/0 cảnh báo (MetaEditor build 6231 qua Wine trên máy cloud); `SigVerify` 34/34 đạt trên MT5 cloud (gồm lệnh chờ trên giấy để so sánh).
+  Biên dịch 0 lỗi/0 cảnh báo (MetaEditor build 6231 qua Wine trên máy cloud); `SigVerify` 37/37 đạt trên MT5 cloud (gồm lệnh chờ trên giấy để so sánh).
   **Chưa chạy máy thử với tick thật** (máy cloud không đăng nhập được sàn) → chủ bot chạy theo `scripts/TOOLS.md`.
 - Chưa làm: đợt 2 (vùng Z của 411, K3 Unicorn), đợt 3 (K4 đường xu hướng).
 - Phát hiện chưa sửa: `ScpNewsGuard` (bot 1.3) chỉ nạp tối đa 256 tin; lịch 12/2025–10/2026 có thể vượt → tin cuối kỳ bị bỏ.
   Công cụ đo dùng bộ đọc riêng không giới hạn.
 - Bot 1.3 (`BotScpMtf`) giữ nguyên, vẫn biên dịch sạch.
+- Lượt máy thử đầu (chủ bot, máy `tandat`, 05–12/01/2026): **không có tick thật** ("no real ticks, every tick generation used")
+  → kết quả không dùng. Lộ lỗi cản đổi vai mãi khi giá dao động (143.572 lần bị phá/tuần, 28.847 tín hiệu, chạy 39 phút);
+  đã sửa: mỗi cản đổi vai một lần, giữ tuổi cản gốc (SPEC 23.2), có ca kiểm tái hiện.
 
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 

@@ -104,6 +104,49 @@ void TestLevels()
    Check("Phá bằng thân: đúng 1 bản đổi vai, def=3",flips==1 && f.flip_def==3,"flips="+(string)flips+" def="+(string)f.flip_def);
   }
 
+// Lỗi 29/09 (chạy máy thử thật): nến vừa có râu dưới xuyên hỗ trợ đổi vai vừa đóng phá lên kháng cự
+// làm bản đổi vai mới bị xét lại ngay trên chính nến đó → chuỗi đổi vai vô tận.
+void TestFlipChain()
+  {
+   ScpSeries s; s.Init(SCP_TF_M15);
+   SigLevelBook book; book.Init(0.01,1,false);
+   long seen=0;
+   Base(s,book,seen,20);
+   int next=BuildPivotHigh(s,book,seen,20);
+   int before=book.Count();
+   // Nến tăng lớn: đáy 100.4 dưới mép dưới 101, đóng 102.6 trên mép trên 102.
+   Feed(s,book,seen,SIG_M15,Bar(next,900,100.9,102.7,100.4,102.6));
+   int flips=0;
+   for(int i=0;i<book.Count();i++) { SigLevel q; if(book.Get(i,q) && q.type==SIG_LV_PIVOT && q.flip>=1) flips++; }
+   Check("Nến vừa xuyên râu vừa đóng phá: đúng 1 bản đổi vai, không chuỗi",flips==1,"flips="+(string)flips);
+   Check("Số lần bị phá trên một nến không vượt số cản cũ",book.Broken()<=before,
+         "bị phá="+(string)book.Broken()+" cản trước="+(string)before);
+  }
+
+// Lỗi 29/09 (máy thử thật: 143.572 lần bị phá/tuần): giá dao động qua lại quanh một cản làm nó đổi vai mãi,
+// mỗi lần lại được làm mới tuổi → cản không bao giờ hết, số cản và tín hiệu tăng không giới hạn.
+void TestFlipOscillation()
+  {
+   ScpSeries s; s.Init(SCP_TF_M15);
+   SigLevelBook book; book.Init(0.01,1,false);
+   long seen=0;
+   Base(s,book,seen,20);
+   int next=BuildPivotHigh(s,book,seen,20);
+   for(int k=0;k<20;k++)
+     {
+      if(k%2==0) Feed(s,book,seen,SIG_M15,Bar(next++,900,101.5,102.8,101.4,102.6));
+      else Feed(s,book,seen,SIG_M15,Bar(next++,900,101.9,102.0,100.3,100.4));
+     }
+   int flips=0, maxflip=0;
+   for(int i=0;i<book.Count();i++)
+     {
+      SigLevel q;
+      if(book.Get(i,q) && q.type==SIG_LV_PIVOT && q.flip>=1) { flips++; maxflip=MathMax(maxflip,q.flip); }
+     }
+   Check("Dao động quanh cản: chỉ đổi vai một lần (SPEC 23.2)",maxflip<=1 && flips<=1,
+         "bản đổi vai="+(string)flips+" bậc cao nhất="+(string)maxflip);
+  }
+
 void TestGapDoji()
   {
    ScpSeries s; s.Init(SCP_TF_M15);
@@ -224,6 +267,8 @@ void TestPaperLimit()
 void OnStart()
   {
    TestLevels();
+   TestFlipChain();
+   TestFlipOscillation();
    TestGapDoji();
    TestTracker();
    TestDetector();
