@@ -28,7 +28,10 @@ K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo tr�
   (2) file quá nặng (`tin_hieu.csv` 81 MB/tuần, giữ mọi bản ghi trong bộ nhớ) → bản ghi xong được chia nhóm ngay rồi bỏ,
   `tin_hieu.csv` chỉ ghi khi `InpWriteSignals=true`; tra nhóm bằng bảng băm.
   Sau đó chủ bot đồng ý áp cùng luật 1R cho đích DOL (DOL gần nhất trung vị 0,41R). `SigVerify` 43/43.
-  Hồ sơ đổi tên lượt: `siglab_2026h1_v4` (1 tuần), `siglab_2026h1_full_v3` (01–06). Chưa chạy lại máy thử sau hai bản sửa này.
+  Hồ sơ đổi tên lượt: `siglab_2026h1_v4` (1 tuần), `siglab_2026h1_full_v3` (01–06).
+- Lượt `siglab_2026h1_v4` (chủ bot, cùng tuần): mọi bộ đếm và kết quả đích cố định 1R/1,5R/2R/3R trùng hệt v2; chạy 1 phút 58 giây, 221 MB.
+  Mọi tín hiệu thật đều có đích cản khung lớn và DOL ≥ 1R; cản khung lớn trung vị 1,08R (p90 1,39R) vì sổ cản dày, DOL trung vị 1,38R.
+  1 tuần, chưa kết luận: thật ≈ ngẫu nhiên ≈ cản giả (−0,11 đến −0,23R sau trượt); đánh ngược nhỉnh hơn thật ở mọi đích.
 
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 
