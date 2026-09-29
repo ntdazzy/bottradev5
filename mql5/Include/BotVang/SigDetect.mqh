@@ -1,0 +1,252 @@
+// SigDetect.mqh — phát hiện chạm cản, phá trong một nhịp và phản ứng P1/P2/P3 cho công cụ đo (SPEC mục 22.1–22.4).
+// Nhận giá và nến đã đóng do bên gọi đưa vào; không đọc MT5, không gửi lệnh.
+#ifndef SIG_DETECT_MQH
+#define SIG_DETECT_MQH
+
+#include "ScpTypes.mqh"
+#include "ScpSeries.mqh"
+#include "ScpReaction.mqh"
+#include "SigLevels.mqh"
+
+struct SigEpisode
+  {
+   long              level_id;
+   long              level_parent;
+   int               etf;
+   int               var;          // kiểu mốc chạm: 0 mép gần/thân, 1 giữa râu, 2 đỉnh/đáy râu (SPEC 22.4)
+   int               dir;          // +1 mua ở hỗ trợ, -1 bán ở kháng cự
+   datetime          touch_time;
+   double            lo, hi;       // dải cản đóng băng lúc chạm
+   double            near, far;    // mép gần và mép xa (đỉnh/đáy râu) theo chiều tiếp cận
+   double            trig;         // mức tính là chạm theo kiểu mốc
+   double            eps, atr, small, ext;
+   int               bars;
+   int               tier, conf, group, type, test_no;
+   bool              fake, minor, wick;
+   int               flip, flip_def;
+   bool              wick_broken, cont;
+  };
+
+struct SigSignal
+  {
+   long              level_id;
+   long              level_parent;
+   int               etf;
+   int               var;
+   int               dir;
+   datetime          bar_close;
+   double            bar_c;
+   double            ext, far, eps, atr;
+   int               reaction;
+   bool              strict;
+   int               bars_after;
+   int               tier, conf, group, type, test_no;
+   bool              fake, minor, wick;
+   int               flip, flip_def;
+   bool              wick_broken, cont;
+  };
+
+class SigDetector
+  {
+private:
+   SigEpisode        m_ep[];
+   int               m_n;
+   SigSignal         m_out[];
+   int               m_out_n;
+   int               m_react_bars;
+   int               m_touch, m_broken, m_expired, m_reacted, m_minor_rejected;
+
+   void              End(int k, SigLevelBook &book)
+     {
+      int idx=book.IndexOf(m_ep[k].level_id);
+      if(idx>=0) book.SetEpOpen(idx,m_ep[k].etf,m_ep[k].var,false);
+      m_ep[k]=m_ep[m_n-1];
+      m_n--;
+     }
+
+   // Cản tạm M5: cấu trúc M5 cùng chiều và nhịp hồi hiện tại không quá 50% nhịp đẩy trước (SPEC 22.2).
+   bool              MinorOk(ScpSeries *m5, int dir, double bid)
+     {
+      if(m5==NULL || m5.Dir()!=(dir>0 ? SCP_DIR_UP : SCP_DIR_DOWN)) return false;
+      int last=-1, prev=-1;
+      for(int i=m5.PivotCount()-1;i>=0;i--)
+        {
+         ScpPivot p=m5.Pivot(i);
+         if(!p.ambiguous && p.is_high==(dir>0)) { last=i; break; }
+        }
+      if(last<0) return false;
+      for(int i=last-1;i>=0;i--)
+        {
+         ScpPivot p=m5.Pivot(i);
+         if(!p.ambiguous && p.is_high==(dir<0)) { prev=i; break; }
+        }
+      if(prev<0) return false;
+      double endp=m5.Pivot(last).price, startp=m5.Pivot(prev).price;
+      double leg=dir*(endp-startp);
+      double pull=dir*(endp-bid);
+      return leg>0 && pull>=0 && pull<=0.5*leg;
+     }
+
+public:
+                     SigDetector() { Init(3); }
+
+   void              Init(int react_bars)
+     {
+      m_n=0; m_out_n=0; m_react_bars=react_bars;
+      m_touch=0; m_broken=0; m_expired=0; m_reacted=0; m_minor_rejected=0;
+      ArrayResize(m_ep,0,256); ArrayResize(m_out,0,64);
+     }
+
+   int               Touches() { return m_touch; }
+   int               BrokenInSwing() { return m_broken; }
+   int               Expired() { return m_expired; }
+   int               Reacted() { return m_reacted; }
+   int               MinorRejected() { return m_minor_rejected; }
+   int               ActiveCount() { return m_n; }
+
+   // Mỗi báo giá: mở lần chạm mới trên các cản gần, cập nhật cực trị các lần chạm đang mở.
+   void              OnTick(SigLevelBook &book, const int &near[], int near_n, double bid, datetime now,
+                            ScpSeries *m1, ScpSeries *m5, double tick, bool use_minor, bool use_m1, bool use_m5)
+     {
+      for(int k=0;k<m_n;k++)
+        {
+         if(m_ep[k].dir>0 && bid<m_ep[k].ext) m_ep[k].ext=bid;
+         if(m_ep[k].dir<0 && bid>m_ep[k].ext) m_ep[k].ext=bid;
+        }
+      for(int q=0;q<near_n;q++)
+        {
+         int idx=near[q];
+         book.MarkSweep(idx,bid);
+         SigLevel lv;
+         if(!book.Get(idx,lv) || !book.Usable(idx,now)) continue;
+         for(int etf=0;etf<2;etf++)
+           {
+            if((etf==0 && !use_m1) || (etf==1 && !use_m5)) continue;
+            ScpSeries *s=(etf==0) ? m1 : m5;
+            if(s==NULL || !s.Info().data_ok) continue;
+            double eps=MathMax(2.0*tick,SCP_K_BUFFER*s.Atr());
+            int nvar=lv.wick ? 3 : 1;
+            for(int v=0;v<nvar;v++)
+              {
+               if(book.EpOpen(idx,etf,v)) continue;
+               int side=book.ArmSide(idx,etf,v);
+               if(side==0 || (lv.role!=0 && side!=lv.role)) continue;
+               double nearp=(side>0) ? lv.top : lv.bottom;
+               double farp=(side>0) ? lv.bottom : lv.top;
+               // Mốc chạm: mức thân (Classic/Gap) hoặc mép gần; với cản có râu thêm giữa râu và đỉnh/đáy râu.
+               double trig=(v==0) ? (lv.lvl>0 ? lv.lvl : nearp) : (v==1 ? (lv.bottom+lv.top)*0.5 : farp);
+               bool touch=(side>0 && bid<=trig+eps) || (side<0 && bid>=trig-eps);
+               if(!touch) continue;
+               book.SetArm(idx,etf,v,0); // mở lại cần một nến khung vào đóng hoàn toàn ngoài dải
+               bool minor=(lv.group==SIG_G_M5TAM);
+               if(minor && (!use_minor || !MinorOk(m5,side,bid))) { m_minor_rejected++; continue; }
+               int test_no=book.BeginTest(idx);
+               if(m_n>=ArraySize(m_ep)) ArrayResize(m_ep,m_n+256);
+               SigEpisode e;
+               ZeroMemory(e);
+               e.level_id=lv.id; e.level_parent=lv.parent; e.etf=etf; e.var=v; e.dir=side;
+               e.touch_time=now; e.lo=lv.bottom; e.hi=lv.top;
+               e.near=nearp; e.far=farp; e.trig=trig;
+               e.eps=eps; e.atr=s.Atr(); e.ext=bid; e.bars=0;
+               // P3: đỉnh (mua) / đáy (bán) nhỏ của nhịp đi vào, đã biết trước lúc chạm, trong 20 nến.
+               e.small=s.SmallPivot(side>0,s.Count(),20,now);
+               e.conf=book.Confluence(idx,eps,now);
+               e.tier=(e.conf>=1) ? 4 : lv.tier;
+               e.group=lv.group; e.type=lv.type; e.test_no=test_no;
+               e.fake=lv.fake; e.minor=minor; e.wick=lv.wick;
+               e.flip=lv.flip; e.flip_def=lv.flip_def; e.wick_broken=lv.wick_broken; e.cont=lv.cont;
+               m_ep[m_n++]=e;
+               book.SetEpOpen(idx,etf,v,true);
+               m_touch++;
+              }
+           }
+        }
+     }
+
+   // Nến M5 đóng vượt mép xa thêm eps sau lúc chạm: cản bị phá trong một nhịp, hủy lần chạm (cả M1 và M5).
+   void              OnM5Close(const ScpBar &bar, double eps_m5, SigLevelBook &book)
+     {
+      for(int k=m_n-1;k>=0;k--)
+        {
+         if(bar.close_time<=m_ep[k].touch_time) continue;
+         bool broken=(m_ep[k].dir>0 && bar.c<m_ep[k].far-eps_m5) || (m_ep[k].dir<0 && bar.c>m_ep[k].far+eps_m5);
+         if(!broken) continue;
+         m_broken++;
+         End(k,book);
+        }
+     }
+
+   // Nến khung vào vừa đóng: cập nhật trạng thái rời dải của cản gần, xét phản ứng các lần chạm đang mở.
+   void              OnEntryBarClosed(int etf, ScpSeries *s, SigLevelBook &book, const int &near[], int near_n,
+                                      double tick)
+     {
+      if(s==NULL || s.Count()<3) return;
+      ScpBar bar=s.LastBar(), prev=s.Bar(s.Count()-2);
+      double eps_now=MathMax(2.0*tick,SCP_K_BUFFER*s.Atr());
+      for(int q=0;q<near_n;q++)
+        {
+         int idx=near[q];
+         SigLevel lv;
+         if(!book.Get(idx,lv)) continue;
+         int side=(bar.l>lv.top+eps_now) ? 1 : (bar.h<lv.bottom-eps_now ? -1 : 0);
+         if(side==0) continue;
+         for(int v=0;v<3;v++) if(!book.EpOpen(idx,etf,v)) book.SetArm(idx,etf,v,side);
+        }
+      for(int k=m_n-1;k>=0;k--)
+        {
+         if(m_ep[k].etf!=etf || bar.close_time<=m_ep[k].touch_time) continue;
+         m_ep[k].bars++;
+         int dir=m_ep[k].dir;
+         double eps=m_ep[k].eps, atr=m_ep[k].atr, trig=m_ep[k].trig;
+         bool touched=(dir>0) ? (bar.l<=trig+eps) : (bar.h>=trig-eps);
+         bool prev_touched=(dir>0) ? (prev.l<=trig+eps) : (prev.h>=trig-eps);
+         // Nến phản ứng không được đóng qua mép xa (đã phá cản).
+         bool inside=(dir>0) ? (bar.c>=m_ep[k].far-eps) : (bar.c<=m_ep[k].far+eps);
+         int re=SCP_RE_NONE;
+         bool strict=false;
+         if(inside)
+           {
+            // P1/P2 không bắt đóng vượt mép gần (cản khung lớn có thể rộng); cờ strict ghi điều kiện mục 14.4.
+            if(ScpP1(bar,dir,DBL_MAX,-DBL_MAX,atr,touched))
+              { re=SCP_RE_P1; strict=ScpP1(bar,dir,m_ep[k].lo,m_ep[k].hi,atr,touched); }
+            else if(ScpP2(prev,bar,dir,DBL_MAX,-DBL_MAX,touched || prev_touched))
+              { re=SCP_RE_P2; strict=ScpP2(prev,bar,dir,m_ep[k].lo,m_ep[k].hi,touched || prev_touched); }
+            else if(ScpP3(bar,dir,m_ep[k].small,eps,true))
+               re=SCP_RE_P3;
+           }
+         if(re!=SCP_RE_NONE)
+           {
+            if(m_out_n>=ArraySize(m_out)) ArrayResize(m_out,m_out_n+64);
+            SigSignal g;
+            ZeroMemory(g);
+            g.level_id=m_ep[k].level_id; g.level_parent=m_ep[k].level_parent;
+            g.etf=etf; g.var=m_ep[k].var; g.dir=dir; g.bar_close=bar.close_time; g.bar_c=bar.c;
+            g.ext=m_ep[k].ext; g.far=m_ep[k].far; g.eps=eps; g.atr=atr;
+            g.reaction=re; g.strict=strict; g.bars_after=m_ep[k].bars;
+            g.tier=m_ep[k].tier; g.conf=m_ep[k].conf; g.group=m_ep[k].group; g.type=m_ep[k].type;
+            g.test_no=m_ep[k].test_no; g.fake=m_ep[k].fake; g.minor=m_ep[k].minor; g.wick=m_ep[k].wick;
+            g.flip=m_ep[k].flip; g.flip_def=m_ep[k].flip_def; g.cont=m_ep[k].cont;
+            int li=book.IndexOf(m_ep[k].level_id);
+            SigLevel cur;
+            g.wick_broken=(li>=0 && book.Get(li,cur)) ? cur.wick_broken : m_ep[k].wick_broken;
+            m_out[m_out_n++]=g;
+            m_reacted++;
+            End(k,book);
+            continue;
+           }
+         if(m_ep[k].bars>=m_react_bars) { m_expired++; End(k,book); }
+        }
+     }
+
+   // Lấy các tín hiệu vừa phát; bên gọi xử lý ngay ở báo giá hiện tại.
+   int               Take(SigSignal &out[])
+     {
+      int n=m_out_n;
+      ArrayResize(out,n);
+      for(int i=0;i<n;i++) out[i]=m_out[i];
+      m_out_n=0;
+      return n;
+     }
+  };
+
+#endif // SIG_DETECT_MQH

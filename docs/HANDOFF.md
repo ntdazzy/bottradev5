@@ -6,7 +6,18 @@ Cập nhật 28/09/2026. Nguồn luật: `docs/SPEC.md`; nền tảng MQL5 đã 
 
 Chỉ nghiên cứu, chưa sửa mã/SPEC. Tổng hợp tại `docs/research/13-entry-sl-tp-research.md`.
 Chủ bot định hướng: tìm cản ở khung lớn (M15, M30, H1, H4, D1, W1), M1/M5 chỉ để tìm điểm vào; né tin;
-làm công cụ đo tín hiệu (so ngẫu nhiên/đánh ngược/mức giá ngẫu nhiên) trước khi đổi cách vào. Các chi tiết còn đang hỏi lại, chưa ghi vào SPEC.
+làm công cụ đo tín hiệu (so ngẫu nhiên/đánh ngược/mức giá ngẫu nhiên) trước khi đổi cách vào.
+
+Sau đó (29/09): đọc lại từng trang 4 tài liệu của chủ bot (`docs/research/01`, `02`, `03`, `14`), tổng hợp ở `15`.
+Chủ bot duyệt hướng **HTF-ZONE 2.0** (SPEC mục 23): K1 đảo chiều ở cản mới, K2 phá rồi quay lại, K3 Unicorn, K4 đường xu hướng lần 3,
+K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo trước, EA sau.
+- Đã có công cụ đo đợt 1 `ScpSignalLab.mq5` (+ `SigLevels`, `SigDetect`, `SigTrack`, `SigReport`, `SigDraw`) và ca kiểm `SigVerify.mq5`.
+  Biên dịch 0 lỗi/0 cảnh báo (MetaEditor build 6231 qua Wine trên máy cloud); `SigVerify` 30/30 đạt trên MT5 cloud.
+  **Chưa chạy máy thử với tick thật** (máy cloud không đăng nhập được sàn) → chủ bot chạy theo `scripts/TOOLS.md`.
+- Chưa làm: đợt 2 (vùng Z của 411, K3 Unicorn), đợt 3 (K4 đường xu hướng); đo lệnh chờ trên giấy (chờ chủ bot trả lời).
+- Phát hiện chưa sửa: `ScpNewsGuard` (bot 1.3) chỉ nạp tối đa 256 tin; lịch 12/2025–10/2026 có thể vượt → tin cuối kỳ bị bỏ.
+  Công cụ đo dùng bộ đọc riêng không giới hạn.
+- Bot 1.3 (`BotScpMtf`) giữ nguyên, vẫn biên dịch sạch.
 
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 

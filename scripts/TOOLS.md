@@ -278,3 +278,26 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\compare-bot-fvgnc.ps
   SL, TP (theo giá); khớp cùng giây; lý do đóng giống nhau; tổng và trung bình R (chưa trừ phí) hai bên; danh sách lệnh lệch (`-List`).
 - Thử trễ khớp lệnh: thêm `-DelayMs 100` (250, 500) cho `run-tester.ps1`. File tester bị ghi lại mỗi lần chạy nên chép ra trước.
 - Khi bot demo đang chạy trên MT5 chính thì không chạy tester bằng script (script đóng MT5).
+
+## `ScpSignalLab` + `SigVerify` — đo tín hiệu HTF-ZONE (SPEC mục 22–23)
+
+EA chỉ chạy trong máy thử, **không có lệnh gửi**. Đợt 1: cản khung lớn M15–W1 (đỉnh/đáy râu, Classic A/V, Gap SnR, Doji SnR,
+OB, FVG, đỉnh/đáy ngày-tuần trước, số tròn, cản tạm M5), kịch bản K1/K2/K5, vào thị trường sau phản ứng M1/M5.
+Mỗi tín hiệu được theo dõi trên tick thật và so với đánh ngược, vào ngẫu nhiên cùng giờ 1–10 ngày sau, và cản giả.
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& '.\scripts\build.ps1' -Target 'Experts\BotVang\ScpSignalLab.mq5','Scripts\BotVang\SigVerify.mq5'"
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-script.ps1 -Script BotVang\SigVerify -Period M1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-tester.ps1 -Expert BotVang\ScpSignalLab.ex5 -SetFile lab\siglab_2026h1.set -Symbol XAUUSDm -Period M1 -From 2026.01.05 -To 2026.07.01
+```
+
+- `SigVerify`: log phải có `[SIG_VERIFY] TOTAL 30 | PASS 30 | FAIL 0` (đã chạy đạt 29/09 trên MT5 build 6231).
+- Cần lịch tin `Common\Files\BotVang\news_usd.csv` (chạy `ExportNews` trước); thiếu lịch thì tín hiệu ghi `tin=thieu_lich`.
+- Nên chạy thử 1 tuần trước (`-From 2026.01.05 -To 2026.01.12`) để đo thời gian, rồi mới chạy 01–06.
+  **Không chạy 07–09 cho tới khi chốt tối đa 3 tổ hợp** (SPEC 23.5).
+- Kết quả `Common\Files\BotScp\SignalLab\<InpRunName>\`:
+  `tong_ket.txt` (mỗi biến thể một dòng), `nhom.csv` (mọi nhóm × cách tính), `tin_hieu.csv` (từng bản ghi thật/đối chứng),
+  `vung_htf.csv` (sổ cản: khung, loại, biên, lúc biết, lúc hết và lý do). Từ chối tên lượt đã có.
+- Chạy máy thử có hình (`-Visual`) thì vẽ cản theo màu khung (M15 xanh nhạt → W1 tím; nét đứt = cản đã đổi vai) và mũi tên tín hiệu.
+- R tính sau spread (mua thoát Bid, bán thoát Ask) và trừ `InpSlipPerLeg`×2. Khoảng ±95% coi các bản ghi độc lập nên hẹp hơn thật.
+  Đây là số đo trên giấy, chồng lấn nhau, không phải tiền của một EA.
