@@ -25,6 +25,7 @@ struct SigEpisode
    bool              fake, minor, wick;
    int               flip, flip_def;
    bool              wick_broken, cont;
+   bool              limit_done;   // lệnh chờ trên giấy tại mốc đã khớp (chỉ để so sánh, SPEC 23.1)
   };
 
 struct SigSignal
@@ -37,7 +38,7 @@ struct SigSignal
    datetime          bar_close;
    double            bar_c;
    double            ext, far, eps, atr;
-   int               reaction;
+   int               reaction;     // 0 = lệnh chờ trên giấy khớp tại mốc (không chờ phản ứng)
    bool              strict;
    int               bars_after;
    int               tier, conf, group, type, test_no;
@@ -54,7 +55,7 @@ private:
    SigSignal         m_out[];
    int               m_out_n;
    int               m_react_bars;
-   int               m_touch, m_broken, m_expired, m_reacted, m_minor_rejected;
+   int               m_touch, m_broken, m_expired, m_reacted, m_minor_rejected, m_limit;
 
    void              End(int k, SigLevelBook &book)
      {
@@ -87,13 +88,31 @@ private:
       return leg>0 && pull>=0 && pull<=0.5*leg;
      }
 
+   void              Emit(int k, int re, bool strict, datetime when, double close_ref, SigLevelBook &book)
+     {
+      if(m_out_n>=ArraySize(m_out)) ArrayResize(m_out,m_out_n+64);
+      SigSignal g;
+      ZeroMemory(g);
+      g.level_id=m_ep[k].level_id; g.level_parent=m_ep[k].level_parent;
+      g.etf=m_ep[k].etf; g.var=m_ep[k].var; g.dir=m_ep[k].dir; g.bar_close=when; g.bar_c=close_ref;
+      g.ext=m_ep[k].ext; g.far=m_ep[k].far; g.eps=m_ep[k].eps; g.atr=m_ep[k].atr;
+      g.reaction=re; g.strict=strict; g.bars_after=m_ep[k].bars;
+      g.tier=m_ep[k].tier; g.conf=m_ep[k].conf; g.group=m_ep[k].group; g.type=m_ep[k].type;
+      g.test_no=m_ep[k].test_no; g.fake=m_ep[k].fake; g.minor=m_ep[k].minor; g.wick=m_ep[k].wick;
+      g.flip=m_ep[k].flip; g.flip_def=m_ep[k].flip_def; g.cont=m_ep[k].cont;
+      int li=book.IndexOf(m_ep[k].level_id);
+      SigLevel cur;
+      g.wick_broken=(li>=0 && book.Get(li,cur)) ? cur.wick_broken : m_ep[k].wick_broken;
+      m_out[m_out_n++]=g;
+     }
+
 public:
                      SigDetector() { Init(3); }
 
    void              Init(int react_bars)
      {
       m_n=0; m_out_n=0; m_react_bars=react_bars;
-      m_touch=0; m_broken=0; m_expired=0; m_reacted=0; m_minor_rejected=0;
+      m_touch=0; m_broken=0; m_expired=0; m_reacted=0; m_minor_rejected=0; m_limit=0;
       ArrayResize(m_ep,0,256); ArrayResize(m_out,0,64);
      }
 
@@ -102,6 +121,7 @@ public:
    int               Expired() { return m_expired; }
    int               Reacted() { return m_reacted; }
    int               MinorRejected() { return m_minor_rejected; }
+   int               LimitFills() { return m_limit; }
    int               ActiveCount() { return m_n; }
 
    // Mỗi báo giá: mở lần chạm mới trên các cản gần, cập nhật cực trị các lần chạm đang mở.
@@ -112,6 +132,13 @@ public:
         {
          if(m_ep[k].dir>0 && bid<m_ep[k].ext) m_ep[k].ext=bid;
          if(m_ep[k].dir<0 && bid>m_ep[k].ext) m_ep[k].ext=bid;
+         // Lệnh chờ trên giấy tại mốc: khớp khi Bid chạm đúng mốc; hết khi lần chạm kết thúc (phản ứng, hết hạn, bị phá).
+         if(!m_ep[k].limit_done && ((m_ep[k].dir>0 && bid<=m_ep[k].trig) || (m_ep[k].dir<0 && bid>=m_ep[k].trig)))
+           {
+            m_ep[k].limit_done=true;
+            Emit(k,SCP_RE_NONE,false,now,bid,book);
+            m_limit++;
+           }
         }
       for(int q=0;q<near_n;q++)
         {
@@ -158,6 +185,8 @@ public:
                m_ep[m_n++]=e;
                book.SetEpOpen(idx,etf,v,true);
                m_touch++;
+               if((side>0 && bid<=trig) || (side<0 && bid>=trig))
+                 { m_ep[m_n-1].limit_done=true; Emit(m_n-1,SCP_RE_NONE,false,now,bid,book); m_limit++; }
               }
            }
         }
@@ -216,20 +245,7 @@ public:
            }
          if(re!=SCP_RE_NONE)
            {
-            if(m_out_n>=ArraySize(m_out)) ArrayResize(m_out,m_out_n+64);
-            SigSignal g;
-            ZeroMemory(g);
-            g.level_id=m_ep[k].level_id; g.level_parent=m_ep[k].level_parent;
-            g.etf=etf; g.var=m_ep[k].var; g.dir=dir; g.bar_close=bar.close_time; g.bar_c=bar.c;
-            g.ext=m_ep[k].ext; g.far=m_ep[k].far; g.eps=eps; g.atr=atr;
-            g.reaction=re; g.strict=strict; g.bars_after=m_ep[k].bars;
-            g.tier=m_ep[k].tier; g.conf=m_ep[k].conf; g.group=m_ep[k].group; g.type=m_ep[k].type;
-            g.test_no=m_ep[k].test_no; g.fake=m_ep[k].fake; g.minor=m_ep[k].minor; g.wick=m_ep[k].wick;
-            g.flip=m_ep[k].flip; g.flip_def=m_ep[k].flip_def; g.cont=m_ep[k].cont;
-            int li=book.IndexOf(m_ep[k].level_id);
-            SigLevel cur;
-            g.wick_broken=(li>=0 && book.Get(li,cur)) ? cur.wick_broken : m_ep[k].wick_broken;
-            m_out[m_out_n++]=g;
+            Emit(k,re,strict,bar.close_time,bar.c,book);
             m_reacted++;
             End(k,book);
             continue;

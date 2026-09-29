@@ -46,6 +46,7 @@ int           g_near_n=0;
 double        g_near_center=0;
 string        g_folder;
 int           g_fh_levels=INVALID_HANDLE;
+int           g_limit_records=0;
 int           g_signals=0, g_fake_signals=0, g_stale=0, g_chase=0, g_late_bars=0, g_ticks=0;
 double        g_tick=0.01;
 double        g_last_bid=0, g_last_ask=0;
@@ -160,8 +161,9 @@ double TargetK(int dir, double edge, double bid, double ask, double buf, double 
 
 void HandleSignal(const SigSignal &g, datetime now, double bid, double ask)
   {
-   if(now-g.bar_close>2) { g_stale++; return; }
-   if(g.dir*(bid-g.bar_c)>InpChaseAtr*g.atr) { g_chase++; return; }
+   bool limit=(g.reaction==SCP_RE_NONE); // lệnh chờ trên giấy: khớp ngay tại mốc, không chờ phản ứng
+   if(!limit && now-g.bar_close>2) { g_stale++; return; }
+   if(!limit && g.dir*(bid-g.bar_c)>InpChaseAtr*g.atr) { g_chase++; return; }
    double spread=ask-bid;
    double base=(g.dir>0) ? MathMin(g.far,g.ext) : MathMax(g.far,g.ext);
    double buf=MathMax(g.eps,spread);
@@ -186,16 +188,17 @@ void HandleSignal(const SigSignal &g, datetime now, double bid, double ask)
       ZeroMemory(f);
       f.etf=g.etf; f.group=g.group; f.ltype=g.type; f.tier=g.tier; f.conf=g.conf;
       f.reaction=g.reaction; f.strict=g.strict; f.minor=g.minor; f.test_no=g.test_no; f.wick=g.wick;
-      f.var_moc=g.var; f.var_sl=v; f.scen=scen; f.flip_def=g.flip_def; f.wick_broken=g.wick_broken;
+      f.var_moc=g.var; f.var_sl=v; f.scen=scen; f.entry_mode=limit ? 1 : 0; f.flip_def=g.flip_def; f.wick_broken=g.wick_broken;
       f.news=news; f.bars_after=g.bars_after; f.hour=dt.hour; f.spread=spread; f.atr=g.atr;
       f.cost_r=(spread+2.0*InpSlipPerLeg)/r;
       if(g.fake) { g_trk.Open(SIG_K_FAKE,g.level_id,now,g.dir,bid,ask,r,k,f); continue; }
       long id=g_trk.OpenWithControls(now,g.dir,bid,ask,r,k,f);
-      if(v==0 && id>0 && g_visual && InpDraw && (g.var==0 || !g.wick))
+      if(!limit && v==0 && id>0 && g_visual && InpDraw && (g.var==0 || !g.wick))
          SigDrawSignal(id,now,g.dir,g.dir>0?ask:bid,sl,e_htf,
                        (scen==1?"K1":(scen==5?"K5":"K2"))+" "+SigGroupName(g.group)+" "+SigTypeName(g.type)+" "+
                        SigReactionName(g.reaction));
      }
+   if(limit) { g_limit_records++; return; }
    if(g.fake) g_fake_signals++;
    else
      {
@@ -216,7 +219,7 @@ string RecLine(const SigRec &x)
             DoubleToString(x.entry,3)+";"+DoubleToString(x.r,3)+";"+
             DoubleToString(x.k[0],2)+";"+DoubleToString(x.k[1],2)+";"+DoubleToString(x.k[2],2)+";"+
             (f.scen==1?"K1":(f.scen==5?"K5":"K2"))+";"+SigGroupName(f.group)+";"+SigTypeName(f.ltype)+";"+
-            IntegerToString(f.tier)+";"+IntegerToString(f.conf)+";"+SigReactionName(f.reaction)+";"+(f.strict?"1":"0")+";"+
+            IntegerToString(f.tier)+";"+IntegerToString(f.conf)+";"+SigReactionName(f.reaction)+";"+(f.strict?"1":"0")+";"+(f.entry_mode==1?"cho_giay":"thi_truong")+";"+
             (f.etf==0?"M1":"M5")+";"+IntegerToString(f.test_no)+";"+IntegerToString(f.var_moc)+";"+IntegerToString(f.var_sl)+";"+
             IntegerToString(f.flip_def)+";"+(f.wick_broken?"1":"0")+";"+IntegerToString(f.news)+";"+IntegerToString(f.hour)+";"+
             DoubleToString(f.spread,3)+";"+DoubleToString(f.atr,3)+";"+DoubleToString(f.cost_r,3);
@@ -233,7 +236,7 @@ void WriteResults()
    if(fh!=INVALID_HANDLE)
      {
       string h="id;loai;goc;gio;chieu;gia_vao;R_gia;k_can_lon;k_can_M5;k_DOL;kich_ban;nhom_can;loai_can;bac;trung_can;phan_ung;"
-               "dong_vuot_mep_gan;khung_vao;lan_cham_truoc;moc;dung;pha_def;rau_da_vuot;tin;gio_san;spread;atr;chi_phi_R";
+               "dong_vuot_mep_gan;cach_vao;khung_vao;lan_cham_truoc;moc;dung;pha_def;rau_da_vuot;tin;gio_san;spread;atr;chi_phi_R";
       string rn[SIG_NR]={"dua_1R","dua_1.5R","dua_2R","dua_3R","dua_can_lon","dua_DOL"};
       for(int i=0;i<SIG_NR;i++) h+=";"+rn[i]+"_kq;"+rn[i]+"_R";
       for(int j=0;j<SIG_NS;j++) h+=";hai_phan"+IntegerToString(j)+"_kq;hai_phan"+IntegerToString(j)+"_R";
@@ -257,7 +260,8 @@ void WriteResults()
                " | bỏ vì đầy="+(string)g_book.Dropped()+"\r\n"+
                "Chạm="+(string)g_det.Touches()+" | phá trong 1 nhịp="+(string)g_det.BrokenInSwing()+
                " | hết hạn chờ phản ứng="+(string)g_det.Expired()+" | có phản ứng="+(string)g_det.Reacted()+
-               " | cản tạm M5 bị loại="+(string)g_det.MinorRejected()+"\r\n"+
+               " | cản tạm M5 bị loại="+(string)g_det.MinorRejected()+
+               " | lệnh chờ trên giấy khớp="+(string)g_limit_records+" (chỉ để so sánh, bot không dùng)\r\n"+
                "Tín hiệu thật="+(string)g_signals+" | từ cản giả="+(string)g_fake_signals+" | bỏ vì quá 2 giây="+(string)g_stale+
                " | bỏ vì giá chạy xa="+(string)g_chase+" | ngẫu nhiên mở="+(string)g_trk.RtMade()+
                " | ngẫu nhiên thiếu dữ liệu="+(string)g_trk.RtMissed()+"\r\n";

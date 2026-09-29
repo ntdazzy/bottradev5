@@ -12,9 +12,9 @@ Sau đó (29/09): đọc lại từng trang 4 tài liệu của chủ bot (`docs
 Chủ bot duyệt hướng **HTF-ZONE 2.0** (SPEC mục 23): K1 đảo chiều ở cản mới, K2 phá rồi quay lại, K3 Unicorn, K4 đường xu hướng lần 3,
 K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo trước, EA sau.
 - Đã có công cụ đo đợt 1 `ScpSignalLab.mq5` (+ `SigLevels`, `SigDetect`, `SigTrack`, `SigReport`, `SigDraw`) và ca kiểm `SigVerify.mq5`.
-  Biên dịch 0 lỗi/0 cảnh báo (MetaEditor build 6231 qua Wine trên máy cloud); `SigVerify` 30/30 đạt trên MT5 cloud.
+  Biên dịch 0 lỗi/0 cảnh báo (MetaEditor build 6231 qua Wine trên máy cloud); `SigVerify` 34/34 đạt trên MT5 cloud (gồm lệnh chờ trên giấy để so sánh).
   **Chưa chạy máy thử với tick thật** (máy cloud không đăng nhập được sàn) → chủ bot chạy theo `scripts/TOOLS.md`.
-- Chưa làm: đợt 2 (vùng Z của 411, K3 Unicorn), đợt 3 (K4 đường xu hướng); đo lệnh chờ trên giấy (chờ chủ bot trả lời).
+- Chưa làm: đợt 2 (vùng Z của 411, K3 Unicorn), đợt 3 (K4 đường xu hướng).
 - Phát hiện chưa sửa: `ScpNewsGuard` (bot 1.3) chỉ nạp tối đa 256 tin; lịch 12/2025–10/2026 có thể vượt → tin cuối kỳ bị bỏ.
   Công cụ đo dùng bộ đọc riêng không giới hạn.
 - Bot 1.3 (`BotScpMtf`) giữ nguyên, vẫn biên dịch sạch.

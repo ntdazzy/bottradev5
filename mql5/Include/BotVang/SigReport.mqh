@@ -37,7 +37,7 @@ string SigVariantName(int moc, int sl, bool wick)
    return m+" dung="+SigSlName(sl);
   }
 
-string SigReactionName(int r) { return r==1 ? "P1_rut_rau" : (r==2 ? "P2_nhan_chim" : (r==3 ? "P3_pha_dinh_day_nho" : "-")); }
+string SigReactionName(int r) { return r==1 ? "P1_rut_rau" : (r==2 ? "P2_nhan_chim" : (r==3 ? "P3_pha_dinh_day_nho" : "cho_giay")); }
 
 class SigReport
   {
@@ -101,22 +101,22 @@ public:
          if(!ok) continue;
          string sc=(f.scen==1) ? "K1" : (f.scen==5 ? "K5" : "K2");
          if(f.scen!=1 && f.test_no>0) sc=sc+"_lan_sau";
-         string v=sc+" pha="+(d==0?"than":"rau")+" "+SigVariantName(f.var_moc,f.var_sl,f.wick)+" | ";
+         string v=(f.entry_mode==1?"CHO_GIAY ":"")+sc+" pha="+(d==0?"than":"rau")+" "+SigVariantName(f.var_moc,f.var_sl,f.wick)+" | ";
          if(f.news==1) { Add(v+"tin=gan_tin (khong vao so chinh)",x,with_slip); continue; }
          Add(v+"tat_ca",x,with_slip);
          Add(v+"nhom_can="+SigGroupName(f.group),x,with_slip);
          Add(v+"loai_can="+SigTypeName(f.ltype),x,with_slip);
          Add(v+"bac="+IntegerToString(f.tier),x,with_slip);
          Add(v+"trung_can="+(f.conf>=1?"co":"khong"),x,with_slip);
-         Add(v+"phan_ung="+SigReactionName(f.reaction),x,with_slip);
-         if(f.reaction<3) Add(v+"phan_ung_dong_vuot_mep_gan="+(f.strict?"co":"khong"),x,with_slip);
+         if(f.entry_mode==0) Add(v+"phan_ung="+SigReactionName(f.reaction),x,with_slip);
+         if(f.entry_mode==0 && f.reaction<3) Add(v+"phan_ung_dong_vuot_mep_gan="+(f.strict?"co":"khong"),x,with_slip);
          Add(v+"khung_vao="+(f.etf==0?"M1":"M5"),x,with_slip);
          Add(v+"lan_cham="+(f.test_no==0?"1":(f.test_no==1?"2":"3+")),x,with_slip);
          Add(v+"gio="+StringFormat("%02d",f.hour),x,with_slip);
          Add(v+"chi_phi_tren_R="+(f.cost_r<=0.05?"<=5%":(f.cost_r<=0.10?"5-10%":">10%")),x,with_slip);
          if(f.news==-1) Add(v+"tin=thieu_lich",x,with_slip);
          // Luật đề xuất của chủ bot cho K1: lần đầu mốc đỉnh/đáy râu; lần sau mốc giữa râu (hoặc đỉnh/đáy râu).
-         if(f.scen==1 && f.wick && ((f.test_no==0 && f.var_moc==2) || (f.test_no>0 && f.var_moc==1)))
+         if(f.entry_mode==0 && f.scen==1 && f.wick && ((f.test_no==0 && f.var_moc==2) || (f.test_no>0 && f.var_moc==1)))
             Add("K1 pha="+(d==0?"than":"rau")+" LUAT_CHU_BOT dau=dinh_rau,sau=giua_rau dung="+SigSlName(f.var_sl)+" | tat_ca",x,with_slip);
         }
      }

@@ -36,6 +36,7 @@ struct SigFeatures
    bool              wick;       // cản có râu (đỉnh/đáy, Doji SnR)
    int               var_moc;    // kiểu mốc chạm: 0 thân/mép gần, 1 giữa râu, 2 đỉnh/đáy râu
    int               var_sl;     // kiểu dừng: 0 sát sau râu, 1 thêm 0,3 ATR M5, 2 thêm 0,5 ATR M5
+   int               entry_mode; // 0 thị trường sau phản ứng (bot), 1 lệnh chờ trên giấy tại mốc (chỉ để so sánh)
    int               scen;       // kịch bản: 1 K1 đảo chiều ở cản mới, 2 K2 phá rồi quay lại, 5 K5 tiếp diễn (SPEC 23.3)
    int               flip_def;   // K2/K5: 1 phá bằng thân, 2 phá bằng râu, 3 cả hai
    bool              wick_broken;// K1: râu đã vượt mép xa (không hợp lệ theo định nghĩa phá bằng râu)

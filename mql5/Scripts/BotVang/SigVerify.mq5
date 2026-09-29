@@ -187,6 +187,7 @@ void TestDetector()
    det.OnEntryBarClosed(0,GetPointer(m1),book,near,nn,0.01);
    SigSignal sg[];
    int n=det.Take(sg);
+   Check("Chạm 100.05 (chưa tới mốc) không khớp lệnh chờ trên giấy",det.LimitFills()==0);
    Check("Phản ứng rút râu phát 1 tín hiệu mua",n==1 && sg[0].dir==1 && sg[0].reaction==SCP_RE_P1,
          "n="+(string)n+(n>0?" dir="+(string)sg[0].dir+" re="+(string)sg[0].reaction:""));
    if(n>0) Check("Tín hiệu giữ cực trị lần chạm",Near(sg[0].ext,100.05));
@@ -195,12 +196,38 @@ void TestDetector()
    Check("Không mở lại khi chưa rời hẳn mức",det.Touches()==1);
   }
 
+// Lệnh chờ trên giấy tại mốc: chạm trong dung sai chưa khớp; Bid tới đúng mốc mới khớp, chỉ một lần.
+void TestPaperLimit()
+  {
+   SigLevelBook book; book.Init(0.01,1,false);
+   ScpSeries m1; m1.Init(SCP_TF_M1);
+   ScpSeries m5; m5.Init(SCP_TF_M5);
+   for(int i=0;i<21;i++) { m1.PushBar(Bar(i,60,101.5,102,101,101.5)); m5.PushBar(Bar(i,300,101.5,102,101,101.5)); }
+   book.EnsureRound(101.5,g_t0);
+   int near[]; int nn=book.Near(101.5,5.0,g_t0+1300,near);
+   SigDetector det; det.Init(3);
+   det.OnEntryBarClosed(0,GetPointer(m1),book,near,nn,0.01);
+   datetime t=g_t0+(datetime)(21*60+5);
+   det.OnTick(book,near,nn,100.08,t,GetPointer(m1),GetPointer(m5),0.01,false,true,false);
+   SigSignal sg[];
+   int n=det.Take(sg);
+   Check("Chờ trên giấy: chạm trong dung sai (100.08) chưa khớp",det.Touches()==1 && n==0,"chạm="+(string)det.Touches()+" n="+(string)n);
+   det.OnTick(book,near,nn,99.99,t+3,GetPointer(m1),GetPointer(m5),0.01,false,true,false);
+   n=det.Take(sg);
+   Check("Chờ trên giấy: Bid tới mốc 100 thì khớp, không cần phản ứng",n==1 && sg[0].reaction==SCP_RE_NONE && sg[0].dir==1,
+         "n="+(string)n);
+   det.OnTick(book,near,nn,99.90,t+6,GetPointer(m1),GetPointer(m5),0.01,false,true,false);
+   n=det.Take(sg);
+   Check("Chờ trên giấy: chỉ khớp một lần mỗi lần chạm",n==0 && det.LimitFills()==1);
+  }
+
 void OnStart()
   {
    TestLevels();
    TestGapDoji();
    TestTracker();
    TestDetector();
+   TestPaperLimit();
    Print("[SIG_VERIFY] TOTAL ",g_pass+g_fail," | PASS ",g_pass," | FAIL ",g_fail);
    if(InpCloseTerminal) TerminalClose(0);
   }
