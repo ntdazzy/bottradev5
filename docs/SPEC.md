@@ -1147,3 +1147,19 @@ Nghiên cứu nền: `docs/research/13-entry-sl-tp-research.md`. Mọi số dư�
 - Báo cáo: tỷ lệ thắng, R trung bình, khoảng tin cậy 95%, hiệu thật − đối chứng, theo khung cản, loại cản, bậc, kiểu phản ứng,
   khung vào, giờ, gần/xa tin, chi phí cao/thấp. Tín hiệu gần tin được ghi nhưng loại khỏi số chính.
 - Kết quả là số đo tín hiệu trên giấy, chồng lấn nhau, không phải tiền của một EA chạy một lệnh mỗi lúc.
+
+### 22.4 Mốc râu, Doji SnR và DOL (chủ bot bổ sung 29/09, kèm ảnh GOLD H1)
+
+- **[ĐỀ XUẤT của chủ bot, cần đo — chưa chốt]** Cản đỉnh/đáy (khung M15, M30, H1, H4…) chưa từng bị phá: mốc chạm là **đỉnh râu** (kháng cự) hoặc **đáy râu** (hỗ trợ)
+  của nến tạo đỉnh/đáy. Lần kiểm tra thứ 2 trở đi: mốc là **giữa râu** hoặc đỉnh/đáy râu — chủ bot chưa chắc cách nào tốt,
+  yêu cầu **đo cả hai**. Giữa râu = (mép thân + đỉnh/đáy râu)/2 của nến tạo cản. "Bị phá" = nến của chính khung nguồn đóng vượt
+  đỉnh/đáy râu thêm `eps_geom` (râu xuyên không tính là phá, theo `docs/research/01-rare-snr.md` mục 2.6).
+- **[YÊU CẦU]** Vẫn chờ phản ứng M1/M5 rồi vào thị trường. **[ĐỀ XUẤT của chủ bot, cần đo]** Dừng lỗ sau đỉnh/đáy râu của cản: mua `min(đáy râu, cực trị đã thấy) − đệm`,
+  bán `max(đỉnh râu, cực trị đã thấy) + đệm + spread`.
+- **[ĐỀ XUẤT, chủ bot giao Claude tra cứu]** Doji SnR theo "Rare SnR" (`docs/research/01-rare-snr.md` mục 2.4), khớp ảnh chủ bot:
+  nến động lực c1 → 1–2 nến doji/thân nhỏ → nến động lực c3 cùng chiều đóng vượt qua cụm doji. Giảm: mốc kháng cự = giá mở c3
+  (≈ thân doji ≈ đóng c1); tăng: mốc hỗ trợ đối xứng. Vùng cản = [mốc, đỉnh râu cao nhất của cụm doji] (giảm), đối xứng khi tăng;
+  dừng lỗ sau râu đó. Ngưỡng [THỬ NGHIỆM] vì tài liệu không cho số: doji/thân nhỏ = thân ≤ 0,3·ATR14 và ≤ 50% biên độ nến;
+  nến động lực = thân ≥ 0,6·ATR14 cùng chiều. Xét trên M15, M30, H1, H4, D1, W1.
+- **[ĐỀ XUẤT từ ảnh]** DOL (đích thanh khoản): đỉnh/đáy râu gần nhất phía trước của cản đỉnh/đáy M15 trở lên **chưa bị giá quét qua**
+  (chưa có giá đi vượt râu đó từ lúc tạo). Đo như một đích phần sau của chốt hai phần, song song với "cản khung lớn kế tiếp".
