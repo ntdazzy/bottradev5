@@ -1227,6 +1227,8 @@ LEVEL 2 = C. Lần quay lại đầu tới LEVEL 2 → phản ứng M1/M5 → v�
 - Dừng lỗ: sau mép xa vùng (đầu râu, UL/LL, đỉnh hộp doji, cực trị đã thấy) + đệm {0; 0,3; 0,5}·ATR M5 + spread với lệnh bán. Đo cả ba.
 - Chốt lời hai phần (mục 22.1 mục 7): phần đầu {1R; 1,5R; cản M5}; phần sau {DOL; cản mới đối diện khung lớn; 5R (Rare SnR tr.13)};
   sau phần đầu dời dừng về giá vào. Bỏ lệnh khi đích gần hơn 1R sau chi phí.
+  Đích "cản khung lớn": mép gần của cản M15 trở lên đầu tiên cách giá vào ≥ 1R sau đệm; cản gần hơn (kể cả cản chồng lên vùng vào)
+  bỏ qua, lấy cản kế tiếp (chủ bot đồng ý 29/09 sau lượt 1 tuần: cản gần nhất phía trước chỉ cách trung vị 0,03R, 0,6% lệnh có đích ≥ 1R).
 - Khối lượng theo bậc cản trong trần 0,25% (mục 22.2). Né tin ±5 phút (đo thêm ±30). Mặc định chỉ quan sát; tiền thật bị chặn.
 
 ### 23.5 Đo và nghiệm thu

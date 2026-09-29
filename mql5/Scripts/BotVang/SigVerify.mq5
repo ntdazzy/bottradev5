@@ -209,6 +209,25 @@ void TestTracker()
    SigRec y=t2.Done(0);
    Check("Bán thoát bằng Ask: đua 2R thắng",y.rs[2]==SIG_WIN && Near(y.rr[2],2.0));
    Check("Bán: hai phần 1R + đích 2R = 1.5R",y.ss[0]==SIG_WIN && Near(y.sr[0],1.5),DoubleToString(y.sr[0],3));
+   // Bản ghi xong được bỏ khỏi bộ nhớ sau khi ghi; bản ghi sau vẫn vào đúng chỗ.
+   t2.ClearDone();
+   bool empty=(t2.DoneCount()==0);
+   long id3=t2.Open(SIG_K_SIG,0,g_t0+10,1,100.0,100.2,1.0,k2,f);
+   t2.CloseAll(100.0,100.2);
+   Check("Xóa bản ghi đã xong: bộ đếm về 0, bản ghi mới vào đúng chỗ",empty && t2.DoneCount()==1 && t2.Done(0).id==id3);
+  }
+
+// Đích cản khung lớn: bỏ cản cách giá vào dưới 1R (SPEC 23.4), lấy cản kế tiếp.
+void TestHtfTarget()
+  {
+   SigLevelBook book; book.Init(0.01,1,false);
+   book.EnsureRound(101.5,g_t0);   // mức 10 giá: ... 90, 100, 110, 120 ...
+   datetime now=g_t0+60;
+   Check("Mua R=10: bỏ mức 110 (0.83R), lấy 120",Near(book.HtfTarget(1,101.5,101.6,0.1,10.0,now),120) &&
+         Near(book.NearestAhead(1,101.5,true,now),110),DoubleToString(book.HtfTarget(1,101.5,101.6,0.1,10.0,now),2));
+   Check("Mua R=5: mức 110 (1.66R) đủ xa, giữ",Near(book.HtfTarget(1,101.5,101.6,0.1,5.0,now),110));
+   Check("Bán R=2: bỏ mức 100 (0.65R), lấy 90",Near(book.HtfTarget(-1,101.5,101.6,0.1,2.0,now),90),
+         DoubleToString(book.HtfTarget(-1,101.5,101.6,0.1,2.0,now),2));
   }
 
 void TestDetector()
@@ -271,6 +290,7 @@ void OnStart()
    TestFlipOscillation();
    TestGapDoji();
    TestTracker();
+   TestHtfTarget();
    TestDetector();
    TestPaperLimit();
    Print("[SIG_VERIFY] TOTAL ",g_pass+g_fail," | PASS ",g_pass," | FAIL ",g_fail);

@@ -12,6 +12,7 @@
 #define SIG_OB_LOOKBACK 20
 #define SIG_DOJI_BODY_ATR 0.3 // doji/thân nhỏ: thân <= 0,3 ATR và <= 50% biên độ (SPEC 22.4, THỬ NGHIỆM)
 #define SIG_MOMO_BODY_ATR 0.6 // nến động lực: thân >= 0,6 ATR cùng chiều (SPEC 22.4, THỬ NGHIỆM)
+#define SIG_MIN_TARGET_R 1.0 // đích cản khung lớn phải cách giá vào ít nhất 1R sau đệm (SPEC 23.4)
 
 enum ENUM_SIG_TF { SIG_M1=0, SIG_M5=1, SIG_M15=2, SIG_M30=3, SIG_H1=4, SIG_H4=5, SIG_D1=6, SIG_W1=7 };
 const ENUM_TIMEFRAMES SIG_PERIODS[SIG_TF_COUNT] =
@@ -515,6 +516,14 @@ public:
          if(dir<0 && m_lv[i].top<price && (best==0 || m_lv[i].top>best)) best=m_lv[i].top;
         }
       return best;
+     }
+
+   // Đích cản khung lớn: mép gần của cản M15 trở lên đầu tiên cách giá vào ít nhất SIG_MIN_TARGET_R (đã trừ đệm).
+   // Cản gần hơn, kể cả cản chồng lên vùng vào lệnh, bị bỏ qua. r: khoảng tới dừng; buf: đệm chốt trước mép.
+   double            HtfTarget(int dir, double bid, double ask, double buf, double r, datetime now)
+     {
+      double from=(dir>0) ? ask+buf+SIG_MIN_TARGET_R*r : bid-(ask-bid)-buf-SIG_MIN_TARGET_R*r;
+      return NearestAhead(dir,from,true,now);
      }
 
    // DOL: đỉnh/đáy râu gần nhất phía trước của cản đỉnh/đáy M15 trở lên chưa bị quét (SPEC 22.4).

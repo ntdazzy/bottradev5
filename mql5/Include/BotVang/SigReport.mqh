@@ -3,6 +3,7 @@
 #ifndef SIG_REPORT_MQH
 #define SIG_REPORT_MQH
 
+#include <Generic\HashMap.mqh>
 #include "SigTrack.mqh"
 #include "SigLevels.mqh"
 
@@ -46,9 +47,13 @@ private:
    int               m_n;
    double            m_slip;          // đệm trượt mỗi chặng (giá)
 
+   CHashMap<string,int> m_slot;       // khóa nhóm → chỉ số: lượt dài có hàng trăm nghìn nhóm
+
    int               Slot(const string key)
      {
-      for(int i=0;i<m_n;i++) if(m_a[i].key==key) return i;
+      int i;
+      if(m_slot.TryGetValue(key,i)) return i;
+      m_slot.Add(key,m_n);
       ArrayResize(m_a,m_n+1,64);
       ZeroMemory(m_a[m_n]);
       m_a[m_n].key=key;
@@ -87,7 +92,7 @@ private:
      }
 
 public:
-   void              Init(double slip_per_leg) { m_n=0; m_slip=slip_per_leg; ArrayResize(m_a,0,64); }
+   void              Init(double slip_per_leg) { m_n=0; m_slip=slip_per_leg; ArrayResize(m_a,0,64); m_slot.Clear(); }
 
    // Chia một bản ghi vào các nhóm, tách theo biến thể (kiểu mốc, kiểu dừng).
    // Tín hiệu gần tin tách riêng, không vào số chính (né tin, SPEC 22.1).

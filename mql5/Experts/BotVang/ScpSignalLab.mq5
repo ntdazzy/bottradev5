@@ -1,7 +1,7 @@
 // ScpSignalLab.mq5 — công cụ đo tín hiệu HTF-ZONE (SPEC mục 22.3, 23). CHỈ chạy trong máy thử; không có lệnh gửi.
 // Đợt 1: cản L1–L4, L6, DOL; kịch bản K1 (đảo chiều ở cản mới), K2 (phá rồi quay lại, đổi vai), K5 (tiếp diễn).
 // Mỗi tín hiệu được theo dõi trên từng tick thật và so với đánh ngược, vào ngẫu nhiên cùng giờ, cản giả.
-// Kết quả: Common\Files\BotScp\SignalLab\<InpRunName>\ tong_ket.txt, nhom.csv, tin_hieu.csv, vung_htf.csv.
+// Kết quả: Common\Files\BotScp\SignalLab\<InpRunName>\ tong_ket.txt, nhom.csv, vung_htf.csv (tin_hieu.csv khi bật InpWriteSignals).
 #property strict
 
 #include <BotVang\ScpTypes.mqh>
@@ -28,6 +28,7 @@ input int    InpNewsBeforeMin = 5;         // né tin: phút trước
 input int    InpNewsAfterMin  = 5;         // né tin: phút sau
 input int    InpWarmupBars   = 800;        // số nến nạp trước mỗi khung
 input bool   InpDraw         = true;       // vẽ cản/tín hiệu khi chạy máy thử có hình
+input bool   InpWriteSignals = false;      // ghi tin_hieu.csv từng lệnh (rất nặng: ~80 MB mỗi tuần)
 
 const double SIG_SL_EXTRA[3] = {0.0, 0.3, 0.5}; // đệm dừng lỗ thêm theo ATR M5 (SPEC 23.4)
 
@@ -46,6 +47,7 @@ int           g_near_n=0;
 double        g_near_center=0;
 string        g_folder;
 int           g_fh_levels=INVALID_HANDLE;
+int           g_fh_signals=INVALID_HANDLE;
 int           g_limit_records=0;
 int           g_signals=0, g_fake_signals=0, g_stale=0, g_chase=0, g_late_bars=0, g_ticks=0;
 double        g_tick=0.01;
@@ -169,7 +171,6 @@ void HandleSignal(const SigSignal &g, datetime now, double bid, double ask)
    double base=(g.dir>0) ? MathMin(g.far,g.ext) : MathMax(g.far,g.ext);
    double buf=MathMax(g.eps,spread);
    double atr5=g_s[SIG_M5].Atr();
-   double e_htf=g_book.NearestAhead(g.dir,bid,true,now);
    double e_m5=g_book.NearestAhead(g.dir,bid,false,now);
    double e_dol=g_book.NearestDol(g.dir,bid,now);
    MqlDateTime dt; TimeToStruct(now,dt);
@@ -181,6 +182,7 @@ void HandleSignal(const SigSignal &g, datetime now, double bid, double ask)
       double sl=(g.dir>0) ? base-buf-extra : base+buf+extra+spread;
       double r=(g.dir>0) ? ask-sl : sl-bid;
       if(r<=g_tick) continue;
+      double e_htf=g_book.HtfTarget(g.dir,bid,ask,buf,r,now);
       double k[3];
       k[SIG_T_HTF]=TargetK(g.dir,e_htf,bid,ask,buf,spread,r);
       k[SIG_T_M5]=TargetK(g.dir,e_m5,bid,ask,buf,spread,r);
@@ -231,7 +233,21 @@ string RecLine(const SigRec &x)
    return s;
   }
 
-void WriteResults()
+// Bản ghi đã xong được ghi/chia nhóm ngay rồi bỏ khỏi bộ nhớ: lượt 6 tháng không giữ hàng triệu bản ghi.
+void DrainDone()
+  {
+   int n=g_trk.DoneCount();
+   if(n==0) return;
+   for(int i=0;i<n;i++)
+     {
+      SigRec x=g_trk.Done(i);
+      if(g_fh_signals!=INVALID_HANDLE) FileWriteString(g_fh_signals,RecLine(x)+"\r\n");
+      g_rep.Classify(x,true);
+     }
+   g_trk.ClearDone();
+  }
+
+void OpenSignalsFile()
   {
    int fh=FileOpen(g_folder+"\\tin_hieu.csv",FILE_COMMON|FILE_WRITE|FILE_TXT|FILE_UNICODE);
    if(fh!=INVALID_HANDLE)
@@ -243,15 +259,17 @@ void WriteResults()
       for(int j=0;j<SIG_NS;j++) h+=";hai_phan"+IntegerToString(j)+"_kq;hai_phan"+IntegerToString(j)+"_R";
       h+=";mfe;mae;mfe1;mae1;mfe5;mae5;mfe15;mae15;mfe60;mae60;mfe240;mae240";
       FileWriteString(fh,h+"\r\n");
-      for(int i=0;i<g_trk.DoneCount();i++) FileWriteString(fh,RecLine(g_trk.Done(i))+"\r\n");
-      FileClose(fh);
      }
-   g_rep.Init(InpSlipPerLeg);
-   for(int i=0;i<g_trk.DoneCount();i++) g_rep.Classify(g_trk.Done(i),true);
+   g_fh_signals=fh;
+  }
+
+void WriteResults()
+  {
    string head="Công cụ đo tín hiệu HTF-ZONE — "+SCP_SPEC_VERSION+" + SPEC 22–23 (đợt 1: K1, K2, K5)\r\n"+
                "Lượt: "+InpRunName+" | "+_Symbol+" | seed="+(string)InpSeed+" | trượt/chặng="+DoubleToString(InpSlipPerLeg,2)+
                " | theo dõi tối đa="+(string)InpMaxHoldMin+" phút | né tin -"+(string)InpNewsBeforeMin+"/+"+(string)InpNewsAfterMin+
-               " phút | lịch tin: "+(g_news_n>0?(string)g_news_n+" sự kiện":"THIẾU")+"\r\n"+
+               " phút | lịch tin: "+(g_news_n>0?(string)g_news_n+" sự kiện":"THIẾU")+
+               " | tin_hieu.csv: "+(InpWriteSignals?"có ghi":"không ghi")+"\r\n"+
                "Tick: "+(string)g_ticks+" | nến M1 nhận muộn >2s: "+(string)g_late_bars+"\r\n"+
                "Cản tạo: M5_tam="+(string)g_book.Created(0)+" M15="+(string)g_book.Created(1)+" M30="+(string)g_book.Created(2)+
                " H1="+(string)g_book.Created(3)+" H4="+(string)g_book.Created(4)+" D1="+(string)g_book.Created(5)+
@@ -300,6 +318,8 @@ int OnInit()
    g_book.SetLog(g_fh_levels);
    g_det.Init(InpReactBars);
    g_trk.Init(InpSeed+7,InpMaxHoldMin,InpRandomCopies);
+   g_rep.Init(InpSlipPerLeg);
+   if(InpWriteSignals) OpenSignalsFile();
    LoadNews();
    Warmup();
    g_ready=true;
@@ -342,6 +362,7 @@ void OnTick()
                 InpUseM5Minor,InpUseM1,InpUseM5);
    int secs=ScpSecondsToSessionEnd(_Symbol,now);
    g_trk.Update(now,t.bid,t.ask,secs>0 && secs<=60);
+   DrainDone();
    if(g_visual && InpDraw && nb[SIG_M15]) SigDrawLevels(g_book,now,t.bid,15.0*g_s[SIG_H1].Atr());
   }
 
@@ -349,6 +370,8 @@ void OnDeinit(const int reason)
   {
    if(!g_ready) return;
    g_trk.CloseAll(g_last_bid,g_last_ask);
+   DrainDone();
+   if(g_fh_signals!=INVALID_HANDLE) FileClose(g_fh_signals);
    g_book.FlushLog();
    if(g_fh_levels!=INVALID_HANDLE) FileClose(g_fh_levels);
    WriteResults();

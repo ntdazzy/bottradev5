@@ -198,6 +198,7 @@ public:
    int               RtMissed() { return m_rt_missed; }
    int               RtMade() { return m_rt_made; }
    SigRec            Done(int i) { return m_done[i]; }
+   void              ClearDone() { m_dn=0; } // sau khi đã ghi/chia nhóm các bản ghi xong
 
    // Mở một bản ghi ở báo giá hiện tại. r là khoảng tới dừng theo giá thoát (đã gồm spread với lệnh bán).
    long              Open(int kind, long parent, datetime now, int dir, double bid, double ask,

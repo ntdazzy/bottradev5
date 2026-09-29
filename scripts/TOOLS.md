@@ -291,16 +291,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-script.ps1 -Scri
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-tester.ps1 -Expert BotVang\ScpSignalLab.ex5 -SetFile lab\siglab_2026h1.set -Symbol XAUUSDm -Period M1 -From 2026.01.05 -To 2026.07.01
 ```
 
-- `SigVerify`: log phải có `[SIG_VERIFY] TOTAL 37 | PASS 37 | FAIL 0` (đã chạy đạt 29/09 trên MT5 build 6231).
+- `SigVerify`: log phải có `[SIG_VERIFY] TOTAL 41 | PASS 41 | FAIL 0` (đã chạy đạt 29/09 trên MT5 build 6231).
 - Có thêm "lệnh chờ trên giấy" tại mốc chạm (nhóm `CHO_GIAY` trong báo cáo): khớp khi Bid tới đúng mốc, không chờ phản ứng;
   chỉ để so với cách vào của bot, bot không dùng lệnh chờ (SPEC 23.1). Lệnh chờ hết khi lần chạm kết thúc.
 - Cần lịch tin `Common\Files\BotVang\news_usd.csv` (chạy `ExportNews` trước); thiếu lịch thì tín hiệu ghi `tin=thieu_lich`.
-- Mỗi lượt cần `InpRunName` mới (hồ sơ hiện đặt `siglab_2026h1_v2`); tên đã có thì công cụ dừng và không ghi gì.
+- Mỗi lượt cần `InpRunName` mới (hồ sơ 1 tuần `siglab_2026h1_v3`, hồ sơ đủ 01–06 `siglab_2026h1_full_v2`); tên đã có thì công cụ dừng và không ghi gì.
 - Lượt đủ 01–06: dùng hồ sơ riêng `lab\siglab_2026h1_full.set` (`-From 2026.01.05 -To 2026.07.01`). Lượt 1 tuần trên máy chủ bot (i7-1355U) mất 2 phút 48 giây.
 - Nên chạy thử 1 tuần trước (`-From 2026.01.05 -To 2026.01.12`) để đo thời gian, rồi mới chạy 01–06.
   **Không chạy 07–09 cho tới khi chốt tối đa 3 tổ hợp** (SPEC 23.5).
 - Kết quả `Common\Files\BotScp\SignalLab\<InpRunName>\`:
-  `tong_ket.txt` (mỗi biến thể một dòng), `nhom.csv` (mọi nhóm × cách tính), `tin_hieu.csv` (từng bản ghi thật/đối chứng),
+  `tong_ket.txt` (mỗi biến thể một dòng), `nhom.csv` (mọi nhóm × cách tính), `tin_hieu.csv` (từng bản ghi thật/đối chứng;
+  chỉ ghi khi `InpWriteSignals=true`, ~80 MB mỗi tuần — hồ sơ 1 tuần bật, hồ sơ 01–06 tắt),
   `vung_htf.csv` (sổ cản: khung, loại, biên, lúc biết, lúc hết và lý do). Từ chối tên lượt đã có.
 - Chạy máy thử có hình (`-Visual`) thì vẽ cản theo màu khung (M15 xanh nhạt → W1 tím; nét đứt = cản đã đổi vai) và mũi tên tín hiệu.
 - R tính sau spread (mua thoát Bid, bán thoát Ask) và trừ `InpSlipPerLeg`×2. Khoảng ±95% coi các bản ghi độc lập nên hẹp hơn thật.

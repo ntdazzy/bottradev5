@@ -1,4 +1,4 @@
-InpRunName=siglab_2026h1_full_v1
+InpRunName=siglab_2026h1_full_v2
 InpSeed=20260929
 InpFakeLevels=true
 InpRandomCopies=2
@@ -13,3 +13,4 @@ InpNewsBeforeMin=5
 InpNewsAfterMin=5
 InpWarmupBars=800
 InpDraw=true
+InpWriteSignals=false
