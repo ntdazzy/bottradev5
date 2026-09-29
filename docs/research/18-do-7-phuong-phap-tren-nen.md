@@ -121,3 +121,26 @@ Nói thẳng: **hiện chưa có luật nào đủ tư cách để viết thành
   - `s411_strict_fixed.mjs`
   - `core_evidence_fixed.mjs`
 - Kết quả discovery nằm trong `research/results/`. Không có file kết quả nào cho 01–06/2026.
+
+## Bổ sung 29/09: đo lại với đối chứng công bằng (`scripts/research/runner2.mjs`)
+
+Theo yêu cầu kiểm toán: cản giả đặt **cùng khoảng cách có dấu tới giá lúc biết và cùng bề rộng** (theo ATR H1), cùng thứ và giờ,
+dời ±1–3 tuần; **gộp 10 lần rải**; tuổi đo cố định 120 giờ cho cả thật lẫn giả (không lấy theo sự kiện của cản thật); lệnh chờ khớp
+đúng giá (khớp rồi chạm dừng lỗ cùng phút = thua); đối chứng lệnh ngẫu nhiên 10 bản mỗi lệnh. Discovery 03–12/2025, cấu hình đóng băng:
+
+| Họ | Cản/ngày | Thật − giả (điểm) | Lệnh R / ngẫu nhiên | Bỏ 3 lệnh lớn nhất |
+|---|---|---|---|---|
+| Mốc (mã hiện tại) | 22,6 | −0,3 ± 1,3 | −0,18 / −0,13 | −0,19 |
+| Râu đỉnh/đáy lớn H1–D1 (của chủ bot) | 2,2 | −0,5 ± 4,2 | +0,28 ± 0,73 / +0,09 | −0,24 |
+| — chỉ H1 | 1,6 | −0,2 ± 5,0 (lần chạm đầu +2,3 ± 6,1) | +0,14 / −0,04 | −0,32 |
+| Unicorn | 1,6 | +3,5 ± 4,8 | +0,09 / +0,07 | −0,04 |
+| Mốc ngày/tuần/phiên | 6,3 | +1,5 ± 2,3 (đỉnh: +0,5 ± 3,1) | −0,05 / −0,09 | −0,06 |
+| Rare SnR chặt | 2,5 | +3,7 ± 4,3 | −0,21 / −0,08 | −0,24 |
+| 411 chặt | 0,9 | −1,8 ± 6,8 | −0,05 / −0,10 | −0,11 |
+| Cản lõi (số tròn + cụm) | 5,5 | +1,1 ± 3,0 | −0,06 / −0,10 | −0,06 |
+| Phá vùng mở phiên | 3,9 | −0,4 ± 3,0 | +0,04 / −0,04 | +0,03 |
+
+**Kết luận:** khi so công bằng, **mọi định nghĩa cản đã thử đều bật không hơn một vùng bất kỳ cùng khoảng cách tới giá** (chênh −2..+4 điểm,
+khoảng 95% đều chứa 0). Các "lợi thế" +5..+11 điểm trước đó là do cản giả đặt xa giá hơn. Không lệnh nào hơn ngẫu nhiên một cách chắc chắn;
+các kết quả dương đều nhờ vài lệnh rất lớn. Khớp với tài liệu (Osler: +4–5 điểm trên FX; ở vàng M1 2025 còn nhỏ hơn).
+Công cụ nghiên cứu (không kèm dữ liệu) lưu ở `scripts/research/`; dữ liệu nến Dukascopy để ngoài repo (đặt `DUKA_DIR`).
