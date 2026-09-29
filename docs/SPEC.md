@@ -1239,6 +1239,22 @@ LEVEL 2 = C. Lần quay lại đầu tới LEVEL 2 → phản ứng M1/M5 → v�
 - Một tổ hợp chỉ được đưa vào EA khi trên 01–06/2026: R trung bình sau chi phí > 0 và hơn cả vào ngẫu nhiên lẫn cản giả,
   khoảng tin cậy 95% không chứa 0; rồi kiểm một lần trên 07–09/2026 vẫn > 0. Không chỉnh luật sau khi xem 07–09.
 
+### 23.6 Đợt 2 đã có trong công cụ đo (29/09, chưa có số liệu)
+
+- **L5/K2b vùng Z (411):** khung nguồn M15–D1. Khi một đỉnh (bán) / đáy (mua) vừa xác nhận là đỉnh 2 / đáy 2: lấy B = đáy (đỉnh) cuối trước nó,
+  đỉnh 1 = đỉnh (đáy) cuối trước B, A = đáy (đỉnh) cuối trước đỉnh 1; bán cần `B > A`, mua cần `B < A`.
+  Z = nến đầu tiên từ nến trước đỉnh 2 có `L < L` nến trước (mua: `H > H` nến trước); vùng `[L(Z), H(Z)]`, vai kháng cự (mua: hỗ trợ).
+  Vùng chỉ dùng được sau khi giá phá B rồi A (râu cũng tính), tính từ lúc nến phá A đóng; thân nến đóng qua mép xa trước đó thì vùng hủy.
+  Hết tuổi 200 nến, không đổi vai. Chưa lọc HSL, chưa bắt mẫu nhấn chìm (cần đo).
+- **K3 Unicorn:** khung nguồn M5 và M15. Đáy (mua) / đỉnh (bán) X vừa xác nhận thấp hơn đáy (cao hơn đỉnh) liền trước = nhánh thao túng;
+  G = đỉnh (đáy) ngay trước X; breaker = nến tăng (mua) / giảm (bán) cuối cùng từ G tới X, vùng `[L, H]`.
+  Cần DOL: hai đỉnh (mua) / đáy (bán) chênh ≤ 0,1·ATR nguồn, phía trước giá, chưa bị giá vượt, trong 200 nến; lấy nhóm gần nhất.
+  Trong 24 nến nguồn: có nến đóng qua mép xa breaker và có FVG 3 nến (nến giữa cùng chiều) từ X trở đi chồng lên breaker.
+  Vùng Unicorn = hợp breaker ∪ FVG; biết lúc nến sau cùng trong hai điều kiện đóng; hết tuổi 24 nến, không đổi vai.
+  Dừng lỗ đo 3 cách: thân cực trị nhánh thao túng (tài liệu), râu cực trị, râu + 0,3·ATR M5. Đích = DOL của mô hình; bỏ nếu < 2R.
+  Chưa đo: đích 2 STDV, breaker là nhóm nến, phiên New York.
+- Cả hai đi qua cùng quy trình chạm → phản ứng M1/M5 → vào thị trường như K1/K2; báo cáo tên `K2b`, `K3` (không tách định nghĩa phá).
+
 ## 24. Sức mạnh cản và phản ứng tại cản (chủ bot duyệt 29/09/2026)
 
 **Trạng thái:** đã có trong công cụ đo `ScpSignalLab`; **chưa có số liệu**. Lý do: lượt 1 tuần (05–12/01/2026) cho thấy tín hiệu ở cản thật

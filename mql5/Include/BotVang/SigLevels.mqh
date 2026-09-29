@@ -17,6 +17,9 @@
 #define SIG_BOS_BARS    20    // phá cấu trúc: theo dõi tối đa số nến sau nến gốc, dừng khi có lần chạm đầu (SPEC 24.1)
 #define SIG_MOMO_FULL   0.6   // nến động lực: thân >= 60% biên độ (Rare SnR "thân dài"; ngưỡng ATR đo theo nhóm)
 #define SIG_RANK_CAP    500   // độ lớn đỉnh/đáy: đếm tối đa số nến bên trái
+#define SIG_UNI_AGE     24    // Unicorn: hạn tìm và hạn dùng, số nến khung nguồn (SPEC 23.3 K3, THỬ NGHIỆM)
+#define SIG_UNI_EQ_ATR  0.1   // DOL đỉnh/đáy bằng nhau: chênh <= 0,1 ATR khung nguồn (SPEC 23.3 K3, THỬ NGHIỆM)
+#define SIG_PENDING     D'3000.01.01' // vùng chưa đủ điều kiện dùng
 
 enum ENUM_SIG_TF { SIG_M1=0, SIG_M5=1, SIG_M15=2, SIG_M30=3, SIG_H1=4, SIG_H4=5, SIG_D1=6, SIG_W1=7 };
 const ENUM_TIMEFRAMES SIG_PERIODS[SIG_TF_COUNT] =
@@ -26,7 +29,7 @@ const ENUM_SCP_TF SIG_PIVOT_AS[SIG_TF_COUNT] =
   {SCP_TF_M1, SCP_TF_M5, SCP_TF_M15, SCP_TF_M15, SCP_TF_H1, SCP_TF_H4, SCP_TF_D1, SCP_TF_D1};
 
 enum ENUM_SIG_LV { SIG_LV_PIVOT=0, SIG_LV_OB=1, SIG_LV_FVG=2, SIG_LV_PD=3, SIG_LV_PW=4, SIG_LV_ROUND=5, SIG_LV_DOJI=6,
-                   SIG_LV_CLASSIC=7, SIG_LV_GAP=8 };
+                   SIG_LV_CLASSIC=7, SIG_LV_GAP=8, SIG_LV_Z=9, SIG_LV_UNI=10 };
 
 // Mã nhóm cản dùng trong báo cáo: 0 M5 tạm, 1..6 M15..W1, 7 ngày trước, 8 tuần trước, 9..11 số tròn.
 #define SIG_G_M5TAM 0
@@ -73,6 +76,8 @@ string SigTypeName(int t)
       case SIG_LV_DOJI: return "doji_snr";
       case SIG_LV_CLASSIC: return "classic_AV";
       case SIG_LV_GAP: return "gap_snr";
+      case SIG_LV_Z: return "vung_Z_411";
+      case SIG_LV_UNI: return "unicorn";
      }
    return "-";
   }
@@ -130,6 +135,23 @@ struct SigLevel
    double            bos_p[2];
    int               rank;        // số nến bên trái trước khi có đáy thấp hơn (hỗ trợ) / đỉnh cao hơn (kháng cự)
    double            brk_body;    // bản đổi vai: thân nến phá theo chiều phá (ATR nguồn), 0 nếu thân < 60% biên độ
+   int               max_age;     // tuổi tối đa (nến nguồn): SIG_LEVEL_AGE, Unicorn SIG_UNI_AGE
+   // Vùng Z (411): chờ phá B rồi A (râu cũng tính) mới dùng được; trước đó known_at = SIG_PENDING.
+   bool              pend;
+   bool              got_b;
+   double            z_b, z_a;
+   // Unicorn: dừng lỗ theo nhánh thao túng (thân / râu cực trị) và đích DOL (SPEC 23.3 K3).
+   double            sl_body, sl_wick, dol;
+  };
+
+// Ứng viên Unicorn: đã có DOL, nhánh thao túng quét đáy/đỉnh cũ và nến breaker; chờ dịch chuyển + FVG chồng breaker.
+struct SigUniCand
+  {
+   int               tf, dir;
+   datetime          x_time;      // nến cực trị nhánh thao túng
+   datetime          k_time;      // nến breaker
+   double            bb_lo, bb_hi, dol, sl_body, sl_wick;
+   long              until_no;    // hết hạn tìm (số nến nguồn)
   };
 
 // Nhóm đo sức mạnh cản dùng chung cho báo cáo tín hiệu và báo cáo phản ứng tại cản (SPEC 24.3).
@@ -138,6 +160,8 @@ string SigBodyBucket(double b) { return b<0 ? "khong_ap_dung" : (b<1.0 ? "<1ATR"
 string SigBosBucket(int b) { return b<0 ? "khong_ap_dung" : IntegerToString(b); }
 string SigRankBucket(int r) { return r<0 ? "khong_ap_dung" : (r<10 ? "<10" : (r<50 ? "10-50" : (r<200 ? "50-200" : ">=200"))); }
 string SigConfBucket(int c) { return c>=3 ? "3+" : IntegerToString(c); }
+// Kịch bản (SPEC 23.3): 1 K1 đảo chiều, 2 K2 phá rồi quay lại (đổi vai), 3 K3 Unicorn, 5 K5 tiếp diễn, 6 K2b vùng Z của 411.
+string SigScenName(int scen) { return scen==1 ? "K1" : (scen==2 ? "K2" : (scen==3 ? "K3" : (scen==5 ? "K5" : "K2b"))); }
 
 class SigLevelBook
   {
@@ -157,6 +181,11 @@ private:
    datetime          m_last_open[SIG_TF_COUNT];
    ScpSeries        *m_cur_s;                   // chuỗi khung nguồn đang xét trong OnSourceBar (tính sức mạnh lúc tạo)
    int               m_cur_tf;
+   SigLevel          m_stage;                   // thông tin riêng của vùng Z/Unicorn chép vào cản lúc Add
+   bool              m_staged;
+   SigUniCand        m_uc[];
+   int               m_ucn;
+   int               m_z_made, m_uni_made;
    int               m_trend;     // chiều của tín hiệu K2 thật gần nhất (+1/-1), 0 chưa có
 
    void              Log(const SigLevel &z)
@@ -229,6 +258,11 @@ private:
       if(real.lvl>0) z.lvl=real.lvl+(z.bottom-real.bottom);
       z.fake=true;
       z.parent=real.id;
+      // Unicorn giả: dừng lỗ và DOL dời cùng khoảng với vùng.
+      double sh=z.bottom-real.bottom;
+      if(real.sl_body!=0) z.sl_body=real.sl_body+sh;
+      if(real.sl_wick!=0) z.sl_wick=real.sl_wick+sh;
+      if(real.dol!=0) z.dol=real.dol+sh;
       z.side0=(price_now>=(z.bottom+z.top)*0.5) ? 1 : -1;
       z.tests=0; z.cur_test=0; z.swept=false;
       ArrayInitialize(z.arm_side,0); ArrayInitialize(z.ep_open,false);
@@ -251,6 +285,13 @@ private:
       z.side0=(price_now>=(bottom+top)*0.5) ? 1 : -1;
       z.origin=origin; z.known_at=known; z.valid_until=valid_until; z.age_start=age_start;
       z.alive=true; z.fake=false; z.parent=0; z.swept=false;
+      z.max_age=SIG_LEVEL_AGE;
+      if(m_staged)
+        {
+         z.max_age=m_stage.max_age; z.pend=m_stage.pend; z.z_b=m_stage.z_b; z.z_a=m_stage.z_a;
+         z.sl_body=m_stage.sl_body; z.sl_wick=m_stage.sl_wick; z.dol=m_stage.dol;
+         m_staged=false;
+        }
       InitStrength(z);
       if(Push(z)<0) return 0;
       m_created[z.group]++;
@@ -372,6 +413,169 @@ private:
         }
      }
 
+   int               BarIdx(ScpSeries *s, datetime t)
+     {
+      int n=s.Count();
+      for(int k=n-1;k>=MathMax(0,n-1-SIG_LEVEL_AGE);k--) if(s.Bar(k).open_time==t) return k;
+      return -1;
+     }
+
+   // Vùng Z của 411 (SPEC 23.2 L5, 411 phần 1 mục 3–4). p2 = đỉnh 2 của M (bán) / đáy 2 của W (mua) vừa xác nhận.
+   // A, đỉnh 1, B là 3 đỉnh/đáy xen kẽ trước đó; bán cần B > A, mua cần B < A. Z = nến đầu tiên ở cụm đỉnh 2 có đáy thấp hơn
+   // đáy nến trước (mua: đỉnh cao hơn đỉnh nến trước); vùng = cả nến Z. Chưa lọc HSL/nhấn chìm (cần đo).
+   void              DetectZone(int tf, ScpSeries *s, int i, double atr, double price_now, int age)
+     {
+      ScpPivot p2=s.Pivot(i);
+      bool sell=p2.is_high;
+      int iB=-1, iP1=-1, iA=-1;
+      for(int j=i-1;j>=0;j--)
+        {
+         ScpPivot q=s.Pivot(j);
+         if(q.ambiguous) continue;
+         if(iB<0) { if(q.is_high!=sell) iB=j; continue; }
+         if(iP1<0) { if(q.is_high==sell) iP1=j; continue; }
+         if(q.is_high!=sell) { iA=j; break; }
+        }
+      if(iA<0) return;
+      double B=s.Pivot(iB).price, A=s.Pivot(iA).price;
+      if((sell && B<=A) || (!sell && B>=A)) return;
+      int kB=BarIdx(s,s.Pivot(iB).bar_time), kP=BarIdx(s,p2.bar_time), n=s.Count();
+      if(kB<0 || kP<0) return;
+      for(int k=MathMax(kB+1,kP-1);k<n;k++)
+        {
+         ScpBar z=s.Bar(k), zp=s.Bar(k-1);
+         if(sell ? (z.l>=zp.l) : (z.h<=zp.h)) continue;
+         ZeroMemory(m_stage);
+         m_stage.max_age=SIG_LEVEL_AGE; m_stage.pend=true; m_stage.z_b=B; m_stage.z_a=A;
+         m_staged=true;
+         if(Add(tf,SIG_LV_Z,z.l,z.h,sell ? -1 : 1,false,z.open_time,SIG_PENDING,0,atr,age,price_now,0)>0) m_z_made++;
+         m_staged=false;
+         return;
+        }
+     }
+
+   // DOL cho Unicorn: nhóm hai đỉnh (mua) / đáy (bán) bằng nhau tương đối (chênh <= tol) phía trước giá, chưa bị giá vượt;
+   // lấy nhóm gần giá nhất. 0 = không có (Unicorn tr.3; SPEC 23.3 K3).
+   double            EqualDol(ScpSeries *s, int dir, double price, double tol, datetime now)
+     {
+      int n=s.Count();
+      if(n<3 || tol<=0) return 0;
+      int k0=MathMax(0,n-1-SIG_LEVEL_AGE);
+      // Cực trị các nến sau nến k (đỉnh cao nhất với mua, đáy thấp nhất với bán).
+      double after[];
+      ArrayResize(after,n);
+      after[n-1]=(dir>0) ? -DBL_MAX : DBL_MAX;
+      for(int k=n-2;k>=k0;k--)
+        {
+         ScpBar b=s.Bar(k+1);
+         after[k]=(dir>0) ? MathMax(after[k+1],b.h) : MathMin(after[k+1],b.l);
+        }
+      int idx[]; double pr[];
+      int m=0;
+      for(int i=0;i<s.PivotCount();i++)
+        {
+         ScpPivot q=s.Pivot(i);
+         if(q.ambiguous || q.is_high!=(dir>0) || q.known_at>now) continue;
+         int k=BarIdx(s,q.bar_time);
+         if(k<k0) continue;
+         ArrayResize(idx,m+1); ArrayResize(pr,m+1);
+         idx[m]=k; pr[m]=q.price; m++;
+        }
+      double best=0;
+      for(int a=0;a<m;a++)
+         for(int b=a+1;b<m;b++)
+           {
+            if(MathAbs(pr[a]-pr[b])>tol) continue;
+            double lvl=(dir>0) ? MathMax(pr[a],pr[b]) : MathMin(pr[a],pr[b]);
+            if((dir>0 && lvl<=price) || (dir<0 && lvl>=price)) continue;
+            int first=MathMin(idx[a],idx[b]);
+            if((dir>0 && after[first]>lvl) || (dir<0 && after[first]<lvl)) continue;
+            if(best==0 || (dir>0 && lvl<best) || (dir<0 && lvl>best)) best=lvl;
+           }
+      return best;
+     }
+
+   // Nhánh thao túng (SPEC 23.3 K3): x vừa xác nhận là đáy thấp hơn đáy trước (mua) / đỉnh cao hơn đỉnh trước (bán),
+   // có DOL ở phía ngược lại. Nến breaker = nến tăng (mua) / giảm (bán) cuối cùng từ gốc nhánh G tới x.
+   void              UniCandidate(int tf, ScpSeries *s, int i, double atr, datetime now)
+     {
+      ScpPivot x=s.Pivot(i);
+      int dir=x.is_high ? -1 : 1;
+      int iPrev=-1, iG=-1;
+      for(int j=i-1;j>=0;j--)
+        {
+         ScpPivot q=s.Pivot(j);
+         if(q.ambiguous) continue;
+         if(q.is_high==x.is_high) { iPrev=j; break; }
+         if(iG<0) iG=j;
+        }
+      if(iPrev<0 || iG<0) return;
+      double prev=s.Pivot(iPrev).price;
+      if((dir>0 && x.price>=prev) || (dir<0 && x.price<=prev)) return;
+      int kG=BarIdx(s,s.Pivot(iG).bar_time), kX=BarIdx(s,x.bar_time);
+      if(kG<0 || kX<0) return;
+      int kk=-1;
+      double body=(dir>0) ? DBL_MAX : -DBL_MAX;
+      for(int k=kX;k>=kG;k--)
+        {
+         ScpBar b=s.Bar(k);
+         if(kk<0 && dir*(b.c-b.o)>0) kk=k;
+         body=(dir>0) ? MathMin(body,MathMin(b.o,b.c)) : MathMax(body,MathMax(b.o,b.c));
+        }
+      if(kk<0) return;
+      double dol=EqualDol(s,dir,s.LastBar().c,SIG_UNI_EQ_ATR*atr,now);
+      if(dol==0) return;
+      ScpBar kb=s.Bar(kk);
+      if(m_ucn>=ArraySize(m_uc)) ArrayResize(m_uc,m_ucn+16);
+      SigUniCand c;
+      c.tf=tf; c.dir=dir; c.x_time=x.bar_time; c.k_time=kb.open_time;
+      c.bb_lo=kb.l; c.bb_hi=kb.h; c.dol=dol; c.sl_body=body; c.sl_wick=x.price;
+      c.until_no=m_bar_no[tf]+SIG_UNI_AGE;
+      m_uc[m_ucn++]=c;
+     }
+
+   // Ứng viên đủ dịch chuyển (nến đóng qua mép xa breaker) và FVG chồng breaker: tạo vùng Unicorn = hợp breaker ∪ FVG.
+   void              UniEvaluate(int tf, ScpSeries *s, double atr, double price_now, int age)
+     {
+      int n=s.Count();
+      for(int q=m_ucn-1;q>=0;q--)
+        {
+         if(m_uc[q].tf!=tf) continue;
+         SigUniCand c=m_uc[q];
+         int kX=BarIdx(s,c.x_time);
+         bool drop=(m_bar_no[tf]>c.until_no || kX<0);
+         int j=-1;
+         for(int k=kX+1;!drop && k<n;k++)
+           {
+            ScpBar b=s.Bar(k);
+            if((c.dir>0 && b.c>c.bb_hi) || (c.dir<0 && b.c<c.bb_lo)) { j=k; break; }
+           }
+         int f3=-1;
+         double lo=0, hi=0;
+         for(int k=kX;!drop && j>=0 && k+2<n;k++)
+           {
+            ScpBar c1=s.Bar(k), c2=s.Bar(k+1), c3=s.Bar(k+2);
+            if(c.dir*(c2.c-c2.o)<=0) continue;
+            double glo=(c.dir>0) ? c1.h : c3.h, ghi=(c.dir>0) ? c3.l : c1.l;
+            if(ghi<=glo) continue;
+            if(MathMin(c.bb_hi,ghi)<=MathMax(c.bb_lo,glo)) continue; // FVG phải chồng breaker
+            f3=k+2; lo=MathMin(c.bb_lo,glo); hi=MathMax(c.bb_hi,ghi);
+            break;
+           }
+         if(!drop && f3>=0)
+           {
+            ZeroMemory(m_stage);
+            m_stage.max_age=SIG_UNI_AGE; m_stage.sl_body=c.sl_body; m_stage.sl_wick=c.sl_wick; m_stage.dol=c.dol;
+            m_staged=true;
+            datetime known=s.Bar(MathMax(j,f3)).known_at;
+            if(Add(tf,SIG_LV_UNI,lo,hi,c.dir,false,c.k_time,known,0,atr,age,price_now,0)>0) m_uni_made++;
+            m_staged=false;
+            drop=true;
+           }
+         if(drop) { m_uc[q]=m_uc[m_ucn-1]; m_ucn--; }
+        }
+     }
+
    // Bản đổi vai của cản i sau khi bị phá (Rare SnR SBR/RBS): cùng hình học, vai ngược, mới ở phía kia.
    void              AddFlip(int i, datetime known, int def, double brk)
      {
@@ -403,6 +607,8 @@ public:
       m_round_n=0; m_trend=0;
       ArrayInitialize(m_bar_no,0); ArrayInitialize(m_last_open,0);
       m_cur_s=NULL; m_cur_tf=-1;
+      m_staged=false; m_ucn=0; m_z_made=0; m_uni_made=0;
+      ArrayResize(m_uc,0,16);
       ArrayResize(m_lv,0,4096); ArrayResize(m_round_keys,0,256);
      }
 
@@ -421,6 +627,8 @@ public:
    int               Broken() { return m_broken; }
    int               Aged() { return m_aged; }
    int               Dropped() { return m_dropped; }
+   int               ZonesMade() { return m_z_made; }
+   int               UnicornsMade() { return m_uni_made; }
 
    bool              Get(int i, SigLevel &out) { if(i<0 || i>=m_n) return false; out=m_lv[i]; return true; }
    int               ArmSide(int i, int etf, int v) { return m_lv[i].arm_side[etf][v]; }
@@ -511,8 +719,11 @@ public:
                  }
             break;
            }
+         if(tf>=SIG_M15) DetectZone(tf,s,i,atr,price_now,age);
+         if(tf==SIG_M5 || tf==SIG_M15) UniCandidate(tf,s,i,atr,last.known_at);
         }
-      if(tf==SIG_M5) { m_cur_s=NULL; return; } // cản tạm M5 chỉ dùng vùng đỉnh/đáy
+      if(tf==SIG_M5 || tf==SIG_M15) UniEvaluate(tf,s,atr,price_now,age);
+      if(tf==SIG_M5) { m_cur_s=NULL; return; } // cản tạm M5 chỉ dùng vùng đỉnh/đáy (và Unicorn)
       DetectDoji(tf,s,atr,price_now,age);
       // Gap SnR: hai nến cùng màu, ít nhất một nến thân >= 0,6 ATR (lọc đề xuất); mức C(c1), vùng [LL, UL] (SPEC 23.2 L3).
       ScpBar g1=s.Bar(n-2), g2=s.Bar(n-1);
@@ -573,7 +784,19 @@ public:
             m_lv[i].wick_broken=true;
             AddFlip(i,b.known_at,2,MomoBody(b,-side,s.Atr()));
            }
-         if(m_bar_no[tf]-m_lv[i].age_start>SIG_LEVEL_AGE) Kill(i,b.close_time,2);
+         // Vùng Z: phá B rồi A (râu cũng tính, 411 tr.4) thì dùng được từ lúc nến đó đóng; cản giả chép theo cản thật.
+         if(m_lv[i].alive && m_lv[i].pend && !m_lv[i].fake)
+           {
+            int d=m_lv[i].role; // -1 bán (M): phá xuống; +1 mua (W): phá lên
+            if(!m_lv[i].got_b && ((d<0 && b.l<m_lv[i].z_b) || (d>0 && b.h>m_lv[i].z_b))) m_lv[i].got_b=true;
+            if(m_lv[i].got_b && ((d<0 && b.l<m_lv[i].z_a) || (d>0 && b.h>m_lv[i].z_a)))
+              {
+               m_lv[i].pend=false; m_lv[i].known_at=b.known_at;
+               for(int j=0;j<m_n;j++)
+                  if(m_lv[j].fake && m_lv[j].parent==m_lv[i].id && m_lv[j].pend) { m_lv[j].pend=false; m_lv[j].known_at=b.known_at; }
+              }
+           }
+         if(m_bar_no[tf]-m_lv[i].age_start>m_lv[i].max_age) Kill(i,b.close_time,2);
         }
      }
 
@@ -627,7 +850,7 @@ public:
         {
          if(m_lv[i].fake || !m_lv[i].alive || m_lv[i].known_at>now) continue;
          if(m_lv[i].valid_until>0 && now>m_lv[i].valid_until) continue;
-         if(htf==(m_lv[i].group==SIG_G_M5TAM)) continue;
+         if(htf==(m_lv[i].group==SIG_G_M5TAM) || m_lv[i].type==SIG_LV_UNI) continue;
          if(dir>0 && m_lv[i].bottom>price && (best==0 || m_lv[i].bottom<best)) best=m_lv[i].bottom;
          if(dir<0 && m_lv[i].top<price && (best==0 || m_lv[i].top>best)) best=m_lv[i].top;
         }

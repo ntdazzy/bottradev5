@@ -31,11 +31,15 @@ string SigMetricName(int m)
    return s[m-SIG_NR];
   }
 
-string SigSlName(int v) { return v==0 ? "sat_rau" : (v==1 ? "rau+0.3ATR" : "rau+0.5ATR"); }
-string SigVariantName(int moc, int sl, bool wick)
+string SigSlName(int v, int scen=0)
+  {
+   if(scen==3) return v==0 ? "than_nhanh_thao_tung" : (v==1 ? "rau_nhanh_thao_tung" : "rau_nhanh+0.3ATR");
+   return v==0 ? "sat_rau" : (v==1 ? "rau+0.3ATR" : "rau+0.5ATR");
+  }
+string SigVariantName(int moc, int sl, bool wick, int scen=0)
   {
    string m=!wick ? "moc=mep_gan" : (moc==0 ? "moc=than" : (moc==1 ? "moc=giua_rau" : "moc=dinh_day_rau"));
-   return m+" dung="+SigSlName(sl);
+   return m+" dung="+SigSlName(sl,scen);
   }
 
 string SigReactionName(int r) { return r==1 ? "P1_rut_rau" : (r==2 ? "P2_nhan_chim" : (r==3 ? "P3_pha_dinh_day_nho" : "cho_giay")); }
@@ -102,11 +106,14 @@ public:
       // Mỗi định nghĩa "phá" (a: thân đóng qua; b: râu vượt) cho một tập tín hiệu hợp lệ riêng (SPEC 23.2).
       for(int d=0;d<2;d++)
         {
-         bool ok=(f.scen==1) ? (d==0 || !f.wick_broken) : ((f.flip_def & (d==0 ? 1 : 2))!=0);
+         // K3 và K2b (vùng Z) không phụ thuộc định nghĩa phá của cản đổi vai: chỉ một dòng.
+         bool own=(f.scen==3 || f.scen==6);
+         bool ok=own ? (d==0) : ((f.scen==1) ? (d==0 || !f.wick_broken) : ((f.flip_def & (d==0 ? 1 : 2))!=0));
          if(!ok) continue;
-         string sc=(f.scen==1) ? "K1" : (f.scen==5 ? "K5" : "K2");
+         string sc=SigScenName(f.scen);
          if(f.scen!=1 && f.test_no>0) sc=sc+"_lan_sau";
-         string v=(f.entry_mode==1?"CHO_GIAY ":"")+sc+" pha="+(d==0?"than":"rau")+" "+SigVariantName(f.var_moc,f.var_sl,f.wick)+" | ";
+         string v=(f.entry_mode==1?"CHO_GIAY ":"")+sc+(own ? "" : " pha="+(d==0?"than":"rau"))+" "+
+                  SigVariantName(f.var_moc,f.var_sl,f.wick,f.scen)+" | ";
          if(f.news==1) { Add(v+"tin=gan_tin (khong vao so chinh)",x,with_slip); continue; }
          Add(v+"tat_ca",x,with_slip);
          Add(v+"nhom_can="+SigGroupName(f.group),x,with_slip);
@@ -119,7 +126,7 @@ public:
          Add(v+"than_dong_luc="+SigBodyBucket(f.body_max),x,with_slip);
          Add(v+"pha_cau_truc="+SigBosBucket(f.bos),x,with_slip);
          Add(v+"do_lon_dinh="+SigRankBucket(f.rank),x,with_slip);
-         if(f.scen!=1) Add(v+"nen_pha="+SigBodyBucket(f.brk_body),x,with_slip);
+         if(f.scen==2 || f.scen==5) Add(v+"nen_pha="+SigBodyBucket(f.brk_body),x,with_slip);
          if(f.entry_mode==0) Add(v+"phan_ung="+SigReactionName(f.reaction),x,with_slip);
          if(f.entry_mode==0 && f.reaction<3) Add(v+"phan_ung_dong_vuot_mep_gan="+(f.strict?"co":"khong"),x,with_slip);
          Add(v+"khung_vao="+(f.etf==0?"M1":"M5"),x,with_slip);

@@ -283,6 +283,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\compare-bot-fvgnc.ps
 
 EA chỉ chạy trong máy thử, **không có lệnh gửi**. Đợt 1: cản khung lớn M15–W1 (đỉnh/đáy râu, Classic A/V, Gap SnR, Doji SnR,
 OB, FVG, đỉnh/đáy ngày-tuần trước, số tròn, cản tạm M5), kịch bản K1/K2/K5, vào thị trường sau phản ứng M1/M5.
+Đợt 2: vùng Z của 411 (K2b) và Unicorn (K3) (SPEC 23.6); sức mạnh cản và phản ứng tại cản (SPEC 24).
 Mỗi tín hiệu được theo dõi trên tick thật và so với đánh ngược, vào ngẫu nhiên cùng giờ 1–10 ngày sau, và cản giả.
 
 ```
@@ -291,11 +292,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-script.ps1 -Scri
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-tester.ps1 -Expert BotVang\ScpSignalLab.ex5 -SetFile lab\siglab_2026h1.set -Symbol XAUUSDm -Period M1 -From 2026.01.05 -To 2026.07.01
 ```
 
-- `SigVerify`: log phải có `[SIG_VERIFY] TOTAL 53 | PASS 53 | FAIL 0` (đã chạy đạt 29/09 trên MT5 build 6231).
+- `SigVerify`: log phải có `[SIG_VERIFY] TOTAL 57 | PASS 57 | FAIL 0` (đã chạy đạt 29/09 trên MT5 build 6231).
 - Có thêm "lệnh chờ trên giấy" tại mốc chạm (nhóm `CHO_GIAY` trong báo cáo): khớp khi Bid tới đúng mốc, không chờ phản ứng;
   chỉ để so với cách vào của bot, bot không dùng lệnh chờ (SPEC 23.1). Lệnh chờ hết khi lần chạm kết thúc.
 - Cần lịch tin `Common\Files\BotVang\news_usd.csv` (chạy `ExportNews` trước); thiếu lịch thì tín hiệu ghi `tin=thieu_lich`.
-- Mỗi lượt cần `InpRunName` mới (hồ sơ 1 tuần `siglab_2026h1_v5`, hồ sơ đủ 01–06 `siglab_2026h1_full_v4`); tên đã có thì công cụ dừng và không ghi gì.
+- Mỗi lượt cần `InpRunName` mới (hồ sơ 1 tuần `siglab_2026h1_v6`, hồ sơ đủ 01–06 `siglab_2026h1_full_v5`); tên đã có thì công cụ dừng và không ghi gì.
 - Lượt đủ 01–06: dùng hồ sơ riêng `lab\siglab_2026h1_full.set` (`-From 2026.01.05 -To 2026.07.01`). Lượt 1 tuần trên máy chủ bot (i7-1355U) mất 2 phút 48 giây.
 - Nên chạy thử 1 tuần trước (`-From 2026.01.05 -To 2026.01.12`) để đo thời gian, rồi mới chạy 01–06.
   **Không chạy 07–09 cho tới khi chốt tối đa 3 tổ hợp** (SPEC 23.5).

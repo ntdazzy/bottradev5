@@ -29,6 +29,7 @@ struct SigEpisode
    int               ltier;        // bậc cản trước khi xét trùng cản
    double            disp, body_max, brk_body;
    int               bos, rank;
+   double            sl_body, sl_wick, dol; // Unicorn (SPEC 23.3 K3)
   };
 
 struct SigSignal
@@ -53,6 +54,7 @@ struct SigSignal
    double            disp, body_max, brk_body;
    int               bos, rank;
    int               merged;       // số tín hiệu cùng lúc ở cản chồng lên bị gộp vào tín hiệu này (SPEC 24.2)
+   double            sl_body, sl_wick, dol;
   };
 
 // Lần chạm mới của một cản (mọi khung vào/kiểu mốc dùng chung): dùng đo phản ứng tại cản, không phụ thuộc cách vào (SPEC 24.3).
@@ -126,6 +128,7 @@ private:
       g.flip=m_ep[k].flip; g.flip_def=m_ep[k].flip_def; g.cont=m_ep[k].cont;
       g.lo=m_ep[k].lo; g.hi=m_ep[k].hi; g.ltier=m_ep[k].ltier;
       g.disp=m_ep[k].disp; g.body_max=m_ep[k].body_max; g.brk_body=m_ep[k].brk_body; g.bos=m_ep[k].bos; g.rank=m_ep[k].rank;
+      g.sl_body=m_ep[k].sl_body; g.sl_wick=m_ep[k].sl_wick; g.dol=m_ep[k].dol;
       int li=book.IndexOf(m_ep[k].level_id);
       SigLevel cur;
       g.wick_broken=(li>=0 && book.Get(li,cur)) ? cur.wick_broken : m_ep[k].wick_broken;
@@ -193,7 +196,7 @@ public:
                bool touch=(side>0 && bid<=trig+eps) || (side<0 && bid>=trig-eps);
                if(!touch) continue;
                book.SetArm(idx,etf,v,0); // mở lại cần một nến khung vào đóng hoàn toàn ngoài dải
-               bool minor=(lv.group==SIG_G_M5TAM);
+               bool minor=(lv.group==SIG_G_M5TAM && lv.type!=SIG_LV_UNI); // Unicorn M5 không phải cản tạm
                if(minor && (!use_minor || !MinorOk(m5,side,bid))) { m_minor_rejected++; continue; }
                bool new_test=!book.AnyOpen(idx);
                int test_no=book.BeginTest(idx);
@@ -212,6 +215,7 @@ public:
                e.fake=lv.fake; e.minor=minor; e.wick=lv.wick;
                e.flip=lv.flip; e.flip_def=lv.flip_def; e.wick_broken=lv.wick_broken; e.cont=lv.cont;
                e.ltier=lv.tier; e.disp=lv.disp; e.body_max=lv.body_max; e.brk_body=lv.brk_body; e.bos=lv.bos; e.rank=lv.rank;
+               e.sl_body=lv.sl_body; e.sl_wick=lv.sl_wick; e.dol=lv.dol;
                m_ep[m_n++]=e;
                if(new_test)
                  {

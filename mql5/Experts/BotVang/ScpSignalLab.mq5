@@ -1,5 +1,6 @@
 // ScpSignalLab.mq5 — công cụ đo tín hiệu HTF-ZONE (SPEC mục 22.3, 23). CHỈ chạy trong máy thử; không có lệnh gửi.
 // Đợt 1: cản L1–L4, L6, DOL; kịch bản K1 (đảo chiều ở cản mới), K2 (phá rồi quay lại, đổi vai), K5 (tiếp diễn).
+// Đợt 2: vùng Z của 411 (K2b) và Unicorn (K3) (SPEC 23.6).
 // Mỗi tín hiệu được theo dõi trên từng tick thật và so với đánh ngược, vào ngẫu nhiên cùng giờ, cản giả.
 // Đo thêm phản ứng tại cản theo sức mạnh cản, tách khỏi cách vào lệnh (SPEC mục 24).
 // Kết quả: Common\Files\BotScp\SignalLab\<InpRunName>\ tong_ket.txt, nhom.csv, phan_ung_can.csv, vung_htf.csv
@@ -54,7 +55,7 @@ int           g_fh_levels=INVALID_HANDLE;
 int           g_fh_signals=INVALID_HANDLE;
 int           g_fh_touches=INVALID_HANDLE;
 int           g_limit_records=0;
-int           g_signals=0, g_fake_signals=0, g_stale=0, g_chase=0, g_late_bars=0, g_ticks=0;
+int           g_signals=0, g_fake_signals=0, g_stale=0, g_chase=0, g_late_bars=0, g_ticks=0, g_uni_short=0;
 double        g_tick=0.01;
 double        g_last_bid=0, g_last_ask=0;
 bool          g_visual=false;
@@ -179,19 +180,24 @@ void HandleSignal(const SigSignal &g, datetime now, double bid, double ask)
    double e_m5=g_book.NearestAhead(g.dir,bid,false,now);
    MqlDateTime dt; TimeToStruct(now,dt);
    int news=NewsFlag(now);
-   int scen=(g.flip==0) ? 1 : (g.cont ? 5 : 2);
+   int scen=(g.type==SIG_LV_UNI) ? 3 : (g.type==SIG_LV_Z ? 6 : ((g.flip==0) ? 1 : (g.cont ? 5 : 2)));
    for(int v=0;v<3;v++)
      {
       double extra=SIG_SL_EXTRA[v]*atr5;
-      double sl=(g.dir>0) ? base-buf-extra : base+buf+extra+spread;
+      double b0=base;
+      // K3: dừng lỗ theo nhánh thao túng: 0 thân cực trị (tài liệu), 1 râu cực trị, 2 râu cực trị + 0,3 ATR M5.
+      if(scen==3) { b0=(v==0) ? g.sl_body : g.sl_wick; extra=(v==2) ? 0.3*atr5 : 0; }
+      double sl=(g.dir>0) ? b0-buf-extra : b0+buf+extra+spread;
       double r=(g.dir>0) ? ask-sl : sl-bid;
       if(r<=g_tick) continue;
       double e_htf=g_book.HtfTarget(g.dir,bid,ask,buf,r,now);
-      double e_dol=g_book.DolTarget(g.dir,bid,ask,buf,r,now);
+      // K3 Unicorn: đích là DOL của mô hình (đỉnh/đáy bằng nhau), không phải DOL chung.
+      double e_dol=(scen==3) ? g.dol : g_book.DolTarget(g.dir,bid,ask,buf,r,now);
       double k[3];
       k[SIG_T_HTF]=TargetK(g.dir,e_htf,bid,ask,buf,spread,r);
       k[SIG_T_M5]=TargetK(g.dir,e_m5,bid,ask,buf,spread,r);
       k[SIG_T_DOL]=TargetK(g.dir,e_dol,bid,ask,buf,spread,r);
+      if(scen==3 && k[SIG_T_DOL]<2.0) { if(!g.fake && !limit && v==0) g_uni_short++; continue; } // tài liệu: ít nhất 2R
       SigFeatures f;
       ZeroMemory(f);
       f.etf=g.etf; f.group=g.group; f.ltype=g.type; f.tier=g.tier; f.conf=g.conf;
@@ -204,7 +210,7 @@ void HandleSignal(const SigSignal &g, datetime now, double bid, double ask)
       long id=g_trk.OpenWithControls(now,g.dir,bid,ask,r,k,f);
       if(!limit && v==0 && id>0 && g_visual && InpDraw && (g.var==0 || !g.wick))
          SigDrawSignal(id,now,g.dir,g.dir>0?ask:bid,sl,e_htf,
-                       (scen==1?"K1":(scen==5?"K5":"K2"))+" "+SigGroupName(g.group)+" "+SigTypeName(g.type)+" "+
+                       SigScenName(scen)+" "+SigGroupName(g.group)+" "+SigTypeName(g.type)+" "+
                        SigReactionName(g.reaction));
      }
    if(limit) { g_limit_records++; return; }
@@ -213,7 +219,7 @@ void HandleSignal(const SigSignal &g, datetime now, double bid, double ask)
      {
       g_signals++;
       // Chiều của K2 thật gần nhất làm bối cảnh tiếp diễn K5 (SPEC 23.3).
-      if(scen!=1 && g.test_no==0 && (g.var==0 || !g.wick)) g_book.SetTrend(g.dir);
+      if((scen==2 || scen==5 || scen==6) && g.test_no==0 && (g.var==0 || !g.wick)) g_book.SetTrend(g.dir);
      }
   }
 
@@ -227,7 +233,7 @@ string RecLine(const SigRec &x)
             TimeToString(x.t0,TIME_DATE|TIME_SECONDS)+";"+(x.dir>0?"mua":"ban")+";"+
             DoubleToString(x.entry,3)+";"+DoubleToString(x.r,3)+";"+
             DoubleToString(x.k[0],2)+";"+DoubleToString(x.k[1],2)+";"+DoubleToString(x.k[2],2)+";"+
-            (f.scen==1?"K1":(f.scen==5?"K5":"K2"))+";"+SigGroupName(f.group)+";"+SigTypeName(f.ltype)+";"+
+            SigScenName(f.scen)+";"+SigGroupName(f.group)+";"+SigTypeName(f.ltype)+";"+
             IntegerToString(f.tier)+";"+IntegerToString(f.conf)+";"+SigReactionName(f.reaction)+";"+(f.strict?"1":"0")+";"+(f.entry_mode==1?"cho_giay":"thi_truong")+";"+
             (f.etf==0?"M1":"M5")+";"+IntegerToString(f.test_no)+";"+IntegerToString(f.var_moc)+";"+IntegerToString(f.var_sl)+";"+
             IntegerToString(f.flip_def)+";"+(f.wick_broken?"1":"0")+";"+IntegerToString(f.news)+";"+IntegerToString(f.hour)+";"+
@@ -293,6 +299,8 @@ void WriteResults()
                "Tín hiệu thật="+(string)g_signals+" | từ cản giả="+(string)g_fake_signals+" | bỏ vì quá 2 giây="+(string)g_stale+
                " | bỏ vì giá chạy xa="+(string)g_chase+" | ngẫu nhiên mở="+(string)g_trk.RtMade()+
                " | ngẫu nhiên thiếu dữ liệu="+(string)g_trk.RtMissed()+"\r\n"+
+               "Vùng Z 411 tạo="+(string)g_book.ZonesMade()+" | Unicorn tạo="+(string)g_book.UnicornsMade()+
+               " | Unicorn bỏ vì DOL < 2R="+(string)g_uni_short+"\r\n"+
                "Tín hiệu gộp vào tín hiệu khác ở cản chồng nhau="+(string)g_det.Merged()+
                " | lần chạm đo phản ứng="+(string)g_probe.DoneCount()+" (xem phan_ung_can.csv)\r\n";
    int ft=FileOpen(g_folder+"\\tong_ket.txt",FILE_COMMON|FILE_WRITE|FILE_TXT|FILE_UNICODE);

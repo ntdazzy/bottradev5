@@ -36,7 +36,10 @@ K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo tr�
   mỗi cản ghi lực bật, thân động lực, phá cấu trúc, cản trùng, độ lớn đỉnh/đáy, độ mới, nến phá; gộp tín hiệu ở cản chồng nhau;
   đo riêng phản ứng tại cản (`phan_ung_can.csv`), so cản giả cùng đặc điểm. Sửa lỗi tuổi cản: sau khi chuỗi đầy 1.500 nến,
   cản M5/M15/M30/H1 không bao giờ hết tuổi (có ca tái hiện, trượt trước khi sửa). `SigVerify` 53/53.
-  Hồ sơ: `siglab_2026h1_v5` (1 tuần), `siglab_2026h1_full_v4` (01–06). Đang làm song song đợt 2 (vùng Z 411, Unicorn).
+  Hồ sơ lúc đó: `siglab_2026h1_v5` (1 tuần), `siglab_2026h1_full_v4` (01–06).
+- Đợt 2 (SPEC 23.6, chưa có số liệu): vùng Z của 411 (K2b, M15–D1, dùng sau khi phá B rồi A) và Unicorn (K3, M5/M15, DOL đỉnh/đáy
+  bằng nhau, breaker ∪ FVG, dừng lỗ theo nhánh thao túng, đích DOL ≥ 2R). Chưa lọc HSL/nhấn chìm, chưa đo đích 2 STDV.
+  `SigVerify` 57/57. Hồ sơ đổi tên: `siglab_2026h1_v6` (1 tuần), `siglab_2026h1_full_v5` (01–06).
 
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 

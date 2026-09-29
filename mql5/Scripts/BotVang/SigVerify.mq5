@@ -407,6 +407,60 @@ void TestProbe()
          ok ? "n="+(string)a.n[0]+" >=2:"+(string)a.hit[0][1]+" >=4:"+(string)a.hit[0][2]+" phá:"+(string)a.brk[0] : "không có nhóm");
   }
 
+// Vùng Z của 411 (SPEC 23.2 L5): hình M: A 97, đỉnh 1 104, B 99 (> A), đỉnh 2 104.2; Z = nến đầu có đáy thấp hơn đáy nến trước.
+// Chỉ dùng được sau khi phá B rồi A (râu cũng tính).
+void TestZone()
+  {
+   ScpSeries s; s.Init(SCP_TF_M15);
+   SigLevelBook book; book.Init(0.01,1,false);
+   long seen=0;
+   Base(s,book,seen,20);
+   double bars[][4]={{100,100.2,97.0,99.8},{100,101,99.6,100.8},{100.8,101.5,100.2,101.2},{101.2,102,100.8,101.8},
+                     {101.8,104,101.5,103.5},{103.5,103.6,102,102.2},{102.2,102.4,100.8,101},{101,101.2,99.9,100.2},
+                     {100.2,100.4,99.0,99.8},{99.8,101,99.5,100.8},{100.8,102,100.5,101.8},{101.8,103,101.4,102.8},
+                     {102.8,104.2,102.5,103.8},{103.8,104.0,102.0,102.3},{102.3,102.5,101.0,101.2},{101.2,101.4,100.2,100.4}};
+   for(int i=0;i<16;i++) Feed(s,book,seen,SIG_M15,Bar(20+i,900,bars[i][0],bars[i][1],bars[i][2],bars[i][3]));
+   int iz=-1;
+   SigLevel z;
+   ZeroMemory(z);
+   for(int i=0;i<book.Count();i++) { SigLevel q; if(book.Get(i,q) && q.type==SIG_LV_Z && q.role==-1 && Near(q.bottom,102.0)) { iz=i; z=q; } }
+   Check("Vùng Z: có vùng bán [102, 104] (cả nến Z), đang chờ phá B rồi A",iz>=0 && Near(z.top,104.0) && z.pend &&
+         !book.Usable(iz,g_t0+(datetime)(40*900)),iz>=0 ? DoubleToString(z.bottom,2)+"-"+DoubleToString(z.top,2) : "không có");
+   if(iz<0) return;
+   Feed(s,book,seen,SIG_M15,Bar(36,900,100.4,100.5,98.8,99.0));    // phá B 99
+   book.Get(iz,z);
+   bool still=z.pend;
+   Feed(s,book,seen,SIG_M15,Bar(37,900,99.0,99.2,96.8,97.0));      // phá A 97
+   book.Get(iz,z);
+   Check("Vùng Z: phá B chưa đủ; phá tiếp A thì dùng được từ lúc nến đó đóng",still && !z.pend && z.known_at==g_t0+(datetime)(38*900),
+         "chờ sau B="+(string)still+" biết="+TimeToString(z.known_at));
+  }
+
+// Unicorn (SPEC 23.3 K3), mua trên M5: hai đỉnh bằng nhau 106/106.05 (DOL) → đáy 97.5 quét đáy 98 → nến breaker tăng [99.8, 102]
+// → nến dịch chuyển đóng 103.3 trên breaker → FVG [99.0, 102.6] chồng breaker. Vùng = hợp [99.0, 102.6].
+void TestUnicorn()
+  {
+   ScpSeries s; s.Init(SCP_TF_M5);
+   SigLevelBook book; book.Init(0.01,1,false);
+   long seen=0;
+   for(int i=0;i<20;i++) Feed(s,book,seen,SIG_M5,Bar(i,300,100,100.5,99.5,100));
+   double bars[][4]={{100,106,99.8,100.5},{100,100.5,99.5,100},{100,100.5,99.5,100},{100,100.5,99.5,100},{100,100.5,99.5,100},
+                     {100,106.05,99.8,100.4},{100,100.5,99.5,100},{100,100.5,99.5,100},{100,100.3,98.0,99.9},{100,100.5,99.5,100},
+                     {100,100.5,99.5,100},{100,102,99.8,101.8},{101.8,101.9,100.5,100.7},{100.7,100.8,99.0,99.2},{99.2,99.4,97.5,97.8},
+                     {97.8,99.0,97.7,98.9},{98.9,103.5,98.8,103.3},{103.3,104,102.6,103.8}};
+   for(int i=0;i<18;i++) Feed(s,book,seen,SIG_M5,Bar(20+i,300,bars[i][0],bars[i][1],bars[i][2],bars[i][3]));
+   SigLevel u;
+   ZeroMemory(u);
+   int iu=-1;
+   for(int i=0;i<book.Count();i++) { SigLevel q; if(book.Get(i,q) && q.type==SIG_LV_UNI) { iu=i; u=q; } }
+   Check("Unicorn: vùng mua [99.0, 102.6] = breaker ∪ FVG, biết lúc nến FVG thứ 3 đóng",
+         iu>=0 && u.role==1 && Near(u.bottom,99.0) && Near(u.top,102.6) && u.known_at==g_t0+(datetime)(38*300),
+         iu>=0 ? DoubleToString(u.bottom,2)+"-"+DoubleToString(u.top,2)+" biết="+TimeToString(u.known_at) : "không có");
+   Check("Unicorn: dừng lỗ thân 97.8 / râu 97.5 của nhánh thao túng, đích DOL 106.05, hạn 24 nến",
+         iu>=0 && Near(u.sl_body,97.8) && Near(u.sl_wick,97.5) && Near(u.dol,106.05) && u.max_age==SIG_UNI_AGE,
+         iu>=0 ? DoubleToString(u.sl_body,2)+"/"+DoubleToString(u.sl_wick,2)+" DOL="+DoubleToString(u.dol,2) : "");
+  }
+
 void OnStart()
   {
    TestLevels();
@@ -420,6 +474,8 @@ void OnStart()
    TestStrength();
    TestMerge();
    TestProbe();
+   TestZone();
+   TestUnicorn();
    TestDetector();
    TestPaperLimit();
    Print("[SIG_VERIFY] TOTAL ",g_pass+g_fail," | PASS ",g_pass," | FAIL ",g_fail);
