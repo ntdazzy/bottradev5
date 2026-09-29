@@ -1310,3 +1310,11 @@ Chủ bot chọn 4 tiêu chí; ngưỡng lấy từ 4 tài liệu khi có, còn 
   ở mép gần. FVG, Unicorn, số tròn, đỉnh/đáy kỳ giữ nguyên. Báo cáo chia nhóm `tinh_chinh` = khung cuối cùng đã tinh chỉnh tới.
 - **Tuổi theo thời gian** từ nến gốc: M15–H1 5 ngày, H4 3 tuần, D1 3 tháng, W1 1 năm [THỬ NGHIỆM]. Cản tạm M5 giữ 200 nến; Unicorn 24 nến.
   Bản đổi vai hết tuổi cùng cản gốc.
+
+### 24.6 Nghiên cứu trên dữ liệu nến ngoài (chủ bot chốt 29/09)
+
+- Dùng nến M1 XAUUSD miễn phí của Dukascopy (giá bid, UTC) để **nghiên cứu** phương pháp tìm cản ít nhiễu, vào lệnh, dừng lỗ, chốt lời.
+  Dữ liệu chỉ để nghiên cứu, không đưa vào repo; kết luận cuối phải kiểm trên máy thử MT5 với tick thật Exness.
+- **Chia dữ liệu [YÊU CẦU]:** tìm luật trên **01–12/2025**; kiểm lại trên **01–06/2026**; **khóa 07–09/2026**, chỉ mở một lần cuối
+  cho tối đa 3 tổ hợp đã chốt (giữ mục 23.5). Không chỉnh luật sau khi xem phần kiểm hoặc phần khóa.
+- Phí khi mô phỏng trên nến M1: spread 0,16 + trượt 0,3 mỗi chặng; nếu dừng lỗ và chốt lời cùng nằm trong một nến M1 thì tính dừng lỗ trước.

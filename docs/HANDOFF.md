@@ -51,6 +51,12 @@ K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo tr�
   dài hơn 200 nến cũ). Phản ứng tại cản: thật bật ≥ 2 ATR M5 43,9% so với giả 41,3%. Nhóm nhỉnh (mẫu nhỏ): FVG +13, OB +11,
   phá cấu trúc 1 mức +15, nến phá ≥ 1,5 ATR +19, H1 +5. Vùng tinh chỉnh bị phá nhiều hơn (H4→M15 81%, D1→H1 94%: vùng hẹp,
   nến M5 dễ đóng qua mép xa). Lệnh 1R (dừng +0,3 ATR, xa tin): K1 −0,14R, K2 −0,19R, K5 −0,15R; K2b 24 lệnh, K3 4 lệnh — quá ít.
+- Nghiên cứu cản ít nhiễu (`docs/research/16*`): mã mở, cộng đồng, học thuật → lợi thế cản nhỏ (~4–5 điểm), số tròn và đỉnh/đáy đã bật
+  nhiều lần có bằng chứng; FVG/OB/gap chưa có. Chủ bot yêu cầu nghiên cứu trên dữ liệu nến: đã tải nến M1 XAUUSD Dukascopy 01/2025–09/2026
+  (527.692 nến tới 06/2026; thiếu 04/09/2025) vào scratchpad, không vào repo. Chia dữ liệu theo SPEC 24.6: tìm 2025, kiểm 01–06/2026, khóa 07–09/2026.
+  Bộ đo nghiên cứu (node, scratchpad) tái hiện kết quả MT5: cản kiểu hiện tại trên 03–12/2025 bật thật 44,0% vs giả 42,7% (+1,3 ± 1,9),
+  lệnh −0,18R vs ngẫu nhiên −0,16R. Đang chạy đo 7 họ phương pháp (Rare SnR chặt, 411 chặt, cản lõi, mốc ngày/tuần/phiên, cản râu của chủ bot,
+  Unicorn chặt, phá vùng mở phiên) có kiểm tra chéo nhìn trước.
 
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 
