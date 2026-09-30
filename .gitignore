@@ -28,8 +28,6 @@ accounts*.dat
 *.bak
 *.old
 *.cache
-*.pyc
-__pycache__/
 *.opt
 *.tst
 *.hcc
@@ -41,7 +39,6 @@ __pycache__/
 /reports/raw/
 /data/
 /node_modules/
-/lab/ket_qua_kham_pha.txt
 
 # Tài liệu gốc/video và bản tải của bên thứ ba: giữ trên máy, không công bố lại
 /docs/video/

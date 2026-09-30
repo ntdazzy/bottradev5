@@ -1,6 +1,6 @@
 # SPEC mới — Bot scalping theo kịch bản và phản ứng giá
 
-Phiên bản tài liệu: `SCP-MTF-1.3-review-fixes` · Ngày: 28/09/2026. Hướng mới HTF-ZONE 2.0 ở mục 23 (29/09, chưa có mã).
+Phiên bản tài liệu: `SCP-MTF-1.3-review-fixes` · Ngày: 28/09/2026. Hướng mới HTF-ZONE 2.0 ở mục 23 (29/09; đã có công cụ đo `ScpSignalLab`, chưa có EA).
 
 Bản 1.3 (chủ bot duyệt 28/09 sau review): S01 nhận nhịp hồi thuận hướng lớn; kế hoạch bị loại không khóa cả lần chạm;
 thoát do mốc vô hiệu cần nến M1 đóng qua mốc; bảo vệ giá vào ở max(2,5 giá, 1R); siết theo cấu trúc sau 1R;
@@ -1166,7 +1166,7 @@ Nghiên cứu nền: `docs/research/13-entry-sl-tp-research.md`. Mọi số dư�
 
 ## 23. HTF-ZONE 2.0 — bot mới theo 4 tài liệu cản (chủ bot chốt hướng 29/09/2026)
 
-**Trạng thái:** thiết kế đã duyệt hướng, **chưa có mã**. Nguồn: `docs/research/01`, `02`, `03`, `14`, `15`.
+**Trạng thái:** thiết kế đã duyệt hướng; **đã có công cụ đo `ScpSignalLab`, chưa có EA**. Nguồn: `docs/research/01`, `02`, `03`, `14`, `15`.
 Mục này thay phần chọn cản/điểm vào của bot 1.3 (mục 5–8) khi được triển khai; phần an toàn, gửi lệnh, khôi phục (mục 9.5, 11–12, 14.8–14.10)
 giữ nguyên. Mọi số là [THỬ NGHIỆM] trừ khi ghi khác. Chỗ tài liệu không có luật được ghi "cần đo".
 
@@ -1239,7 +1239,7 @@ LEVEL 2 = C. Lần quay lại đầu tới LEVEL 2 → phản ứng M1/M5 → v�
 - Một tổ hợp chỉ được đưa vào EA khi trên 01–06/2026: R trung bình sau chi phí > 0 và hơn cả vào ngẫu nhiên lẫn cản giả,
   khoảng tin cậy 95% không chứa 0; rồi kiểm một lần trên 07–09/2026 vẫn > 0. Không chỉnh luật sau khi xem 07–09.
 
-### 23.6 Đợt 2 đã có trong công cụ đo (29/09, chưa có số liệu)
+### 23.6 Đợt 2 đã có trong công cụ đo (29/09)
 
 - **L5/K2b vùng Z (411):** khung nguồn M15–D1. Khi một đỉnh (bán) / đáy (mua) vừa xác nhận là đỉnh 2 / đáy 2: lấy B = đáy (đỉnh) cuối trước nó,
   đỉnh 1 = đỉnh (đáy) cuối trước B, A = đáy (đỉnh) cuối trước đỉnh 1; bán cần `B > A`, mua cần `B < A`.
@@ -1257,7 +1257,7 @@ LEVEL 2 = C. Lần quay lại đầu tới LEVEL 2 → phản ứng M1/M5 → v�
 
 ## 24. Sức mạnh cản và phản ứng tại cản (chủ bot duyệt 29/09/2026)
 
-**Trạng thái:** đã có trong công cụ đo `ScpSignalLab`; **chưa có số liệu**. Lý do: lượt 1 tuần (05–12/01/2026) cho thấy tín hiệu ở cản thật
+**Trạng thái:** đã có trong công cụ đo `ScpSignalLab`; số liệu ghi ở `docs/HANDOFF.md` (lượt v5, v7). Lý do: lượt 1 tuần (05–12/01/2026) cho thấy tín hiệu ở cản thật
 ≈ vào ngẫu nhiên ≈ cản giả; sổ cản nhận mọi đỉnh/đáy, mọi cặp gap… mà không phân biệt cản mạnh/yếu (~4.500 cản mới/tuần).
 Chủ bot chọn 4 tiêu chí; ngưỡng lấy từ 4 tài liệu khi có, còn lại [THỬ NGHIỆM] và báo cáo chia nhóm để đo. Chưa dùng làm bộ lọc.
 

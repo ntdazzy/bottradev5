@@ -1,4 +1,4 @@
-// BotScpMtf.mq5 — EA bot SCP-MTF-1.0 theo docs/SPEC.md.
+// BotScpMtf.mq5 — EA bot SCP-MTF-1.3 theo docs/SPEC.md.
 // Mặc định QUAN SÁT: không gửi lệnh. Muốn gửi phải bật rõ từng nhánh bằng input.
 // Trạng thái và việc còn lại: docs/HANDOFF.md.
 #property strict
@@ -7,7 +7,6 @@
 #include <BotVang\ScpSeries.mqh>
 #include <BotVang\ScpZones.mqh>
 #include <BotVang\ScpEpisodes.mqh>
-#include <BotVang\ScpReaction.mqh>
 #include <BotVang\ScpScenario.mqh>
 #include <BotVang\ScpPlan.mqh>
 #include <BotVang\ScpFeed.mqh>
@@ -68,7 +67,6 @@ long                g_seen_pivot[SCP_TF_COUNT];
 int                 g_touches, g_proposals, g_plans, g_skips, g_sent, g_closed;
 ENUM_SCP_SKIP       g_last_skip;
 string              g_last_skip_why;
-bool                g_last_news_missing;
 ulong               g_calc_us[4096], g_send_us[256];
 int                 g_calc_n=0, g_send_n=0;
 ulong               g_send_this_tick=0;
@@ -328,7 +326,6 @@ bool GateSkip(ENUM_SCP_SKIP &skip, string &why)
      }
    if(!g_news.Available())
      {
-      g_last_news_missing = true;
       // Thiếu lịch tin: không chặn ở chế độ nghiên cứu nhưng phải ghi rõ (SPEC 14.10).
       if(!MQLInfoInteger(MQL_TESTER))
         {
@@ -542,7 +539,6 @@ int OnInit()
    g_touches = g_proposals = g_plans = g_skips = g_sent = g_closed = 0;
    g_last_skip = SCP_SKIP_NONE;
    g_last_skip_why = "";
-   g_last_news_missing = false;
    string folder = "BotScp\\" + InpRunName;
    if(!g_journal.Init(folder, _Symbol, InpRunName))
      { Print("[SCP] không mở được nhật ký ở ", folder); return INIT_FAILED; }

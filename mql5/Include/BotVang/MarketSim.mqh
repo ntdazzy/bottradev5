@@ -1,8 +1,8 @@
-// Lệnh ảo vào ngay theo giá thị trường của PhanUngLab (SPEC §21.1, §22.3). Cùng quy ước với CSmcSim (SmcSim.mqh): khớp giá Ask (mua)
+// Lệnh ảo vào ngay theo giá thị trường của PhanUngLab. Cùng quy ước với CSmcSim (SmcSim.mqh): khớp giá Ask (mua)
 // / Bid (bán) ở tick vào; dừng lỗ theo tick đúng phía (mua: Bid ≤ SL, bán: Ask ≥ SL), đóng ở giá tick đó và tính một chặng đệm trượt;
 // chốt lời đóng đúng giá TP; giữ quá N nến thì đóng theo giá thị trường (một chặng); hết dữ liệu khi còn mở thì không tính.
 // Chỉ có lệnh vào ngay, và mỗi tick chỉ xem ngưỡng gần giá nhất trong 4 hàng đợi, nên chạy được vài triệu lệnh ảo trên tick thật.
-// SPEC §24 bản (b): một lần vào gồm 2 nửa cùng giá vào và SL (AddPair); nửa A chốt lời thì SL của nửa B dời về giá vào ngay.
+// bản (b): một lần vào gồm 2 nửa cùng giá vào và SL (AddPair); nửa A chốt lời thì SL của nửa B dời về giá vào ngay.
 #ifndef BOTVANG_MARKETSIM_MQH
 #define BOTVANG_MARKETSIM_MQH
 
@@ -115,7 +115,7 @@ public:
       return n++;
      }
 
-   // SPEC §24 bản (b): vào 2 nửa ở tick t, cùng giá vào và SL; nửa A chốt ở tp, nửa B (chỉ số A + 1) ở tp2. Trả về chỉ số nửa A.
+   // bản (b): vào 2 nửa ở tick t, cùng giá vào và SL; nửa A chốt ở tp, nửa B (chỉ số A + 1) ở tp2. Trả về chỉ số nửa A.
    int               AddPair(int kind, int cell, int arm, int dir, double sl, double tp, double tp2, const MqlTick &t)
      {
       int a = Add(kind, cell, arm, dir, sl, tp, t);

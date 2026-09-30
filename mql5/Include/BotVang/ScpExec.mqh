@@ -5,7 +5,6 @@
 
 #include <Trade\Trade.mqh>
 #include "ScpTypes.mqh"
-#include "ScpPlan.mqh"
 #include "ScpState.mqh"
 
 class ScpExec

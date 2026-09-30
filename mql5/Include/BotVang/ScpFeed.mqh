@@ -45,7 +45,6 @@ public:
         { m_last_pushed[i]=0; m_forming[i]=0; m_late_count[i]=0; }
      }
 
-   int               LateCount(ENUM_SCP_TF tf) { return m_late_count[tf]; }
    bool              Gap() { return m_gap; }
 
    // Nạp nến lịch sử đã đóng lúc khởi động để bối cảnh có sẵn (SPEC 15.2).
@@ -167,7 +166,6 @@ public:
       return true;
      }
 
-   ScpQuote          Quote() { return m_quote; }
   };
 
 #endif // SCP_FEED_MQH

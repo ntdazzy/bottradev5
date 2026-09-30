@@ -1,9 +1,9 @@
-// PhanUngLab: đo vào lệnh khi có phản ứng ở vùng (SPEC §22): 5 loại vùng × 4 kiểu phản ứng, so với đối chứng thời điểm ngẫu nhiên
+// PhanUngLab: đo vào lệnh khi có phản ứng ở vùng: 5 loại vùng × 4 kiểu phản ứng, so với đối chứng thời điểm ngẫu nhiên
 // (RC-T), đảo chiều (RC-D), nhóm X1 (cùng mẫu nến nhưng ngoài vùng) và X2 (chạm vùng là vào). CHỈ ĐỂ ĐO trong Strategy Tester,
 // "mọi tick theo tick thật". Khung vào lệnh = khung chạy tester (M1, M5); R4 (CHoCH M1 sau khi chạm vùng M5) chỉ đo khi chạy M5.
-// Cách thoát lệnh: mặc định như §22.3 (SL đáy/đỉnh lớn, TP = InpTpR × R, 1 lệnh); InpSlMode / InpTp1Price / InpRunnerPrice bật cách
-// thoát scalping của §24 (SL sau râu, TP1 theo giá hoặc "tùy lực", ăn thêm) cho mọi loại lệnh (thật, RC-T, RC-D, X1, X2).
-// InpHtf bật cản khung lớn của §25 (HtfZones.mqh): nhóm B (vùng M15/H1/H4/D1, ngày/tuần) có lệnh, RC-T (dãy ngẫu nhiên riêng), RC-D, X2
+// Cách thoát lệnh: mặc định SL đáy/đỉnh lớn, TP = InpTpR × R, 1 lệnh; InpSlMode / InpTp1Price / InpRunnerPrice bật cách
+// thoát scalping (SL sau râu, TP1 theo giá hoặc "tùy lực", ăn thêm) cho mọi loại lệnh (thật, RC-T, RC-D, X1, X2).
+// InpHtf bật cản khung lớn (HtfZones.mqh): nhóm B (vùng M15/H1/H4/D1, ngày/tuần) có lệnh, RC-T (dãy ngẫu nhiên riêng), RC-D, X2
 // riêng; nhóm C / "A không trùng" là nhãn trên lệnh nhóm A. Nhóm A giữ nguyên từng lệnh.
 // Không đặt lệnh thật.
 #property copyright "BotVang"
@@ -23,16 +23,16 @@ input string   InpRunName = "pu";             // Tên lần chạy (thư mục k
 input ulong    InpSeed = 1;                   // Hạt giống cho đối chứng ngẫu nhiên
 input double   InpSlip = 0.5;                 // Đệm trượt (theo giá) cho mỗi chặng thị trường/lệnh dừng: vàng 0,5; BTC 25; ETH 2,3
 input double   InpTpR = 1.0;                  // Chốt lời = số lần R (1; 1,5; 2)
-input int      InpSlMode = 0;                 // Dừng lỗ: 0 = đáy/đỉnh lớn 20/20 ngoài mốc (§22.3); 1 = sau râu nến phản ứng: mốc ∓ 0,1 ATR (§24)
-input double   InpTp1Price = 0.0;             // Chốt đầu TP1 (§24): 0 = theo InpTpR; > 0 = số giá cố định (1, 2, 3, 5); −1 = "tùy lực" theo thân nến phản ứng / ATR
-input double   InpRunnerPrice = 0.0;          // Ăn thêm (§24): 0 = không (0,01 lot); > 0 = 0,02 lot, nửa sau dời SL về giá vào khi TP1 khớp, chốt ở giá vào ± số giá này
+input int      InpSlMode = 0;                 // Dừng lỗ: 0 = đáy/đỉnh lớn 20/20 ngoài mốc; 1 = sau râu nến phản ứng: mốc ∓ 0,1 ATR
+input double   InpTp1Price = 0.0;             // Chốt đầu TP1: 0 = theo InpTpR; > 0 = số giá cố định (1, 2, 3, 5); −1 = "tùy lực" theo thân nến phản ứng / ATR
+input double   InpRunnerPrice = 0.0;          // Ăn thêm: 0 = không (0,01 lot); > 0 = 0,02 lot, nửa sau dời SL về giá vào khi TP1 khớp, chốt ở giá vào ± số giá này
 input int      InpControls = 20;              // Số đối chứng thời điểm ngẫu nhiên cho mỗi lệnh thật
 input int      InpWarmBars = 1000;            // Số nến lịch sử nạp trước khi bắt đầu đo
 input int      InpMaxHold = 500;              // Giữ lệnh tối đa (nến khung vào lệnh), quá thì đóng theo giá thị trường
 input int      InpRctDays = 10;               // Đối chứng thời điểm: cùng giờ, lệch ngẫu nhiên 1..N ngày về sau
 input int      InpVnOffset = 7;               // Giờ VN = giờ sàn + số giờ này
 input datetime InpCutVn = D'2026.07.06';      // Mốc chia khám phá / kiểm tra (giờ VN)
-input bool     InpHtf = false;                // Cản khung lớn M15/H1/H4/D1 (SPEC §25): thêm nhóm B, C, "A không trùng"; tắt = như cũ
+input bool     InpHtf = false;                // Cản khung lớn M15/H1/H4/D1: thêm nhóm B, C, "A không trùng"; tắt = như cũ
 
 #define R_COUNT    4                        // kiểu phản ứng: ZR_R1, ZR_R2, ZR_R3 (SmcZones.mqh) và R4
 #define RI_R4      3
@@ -56,7 +56,7 @@ CSmcFvgs       g_fvg;
 CSmcZones      g_zones;
 CMarketSim     g_sim;
 CRng           g_rng;
-bool           g_s24 = false;    // thoát lệnh theo §24 (có ít nhất một trong InpSlMode, InpTp1Price, InpRunnerPrice khác mặc định)
+bool           g_s24 = false;    // thoát lệnh kiểu scalping (có ít nhất một trong InpSlMode, InpTp1Price, InpRunnerPrice khác mặc định)
 bool           g_warm = false;
 datetime       g_lastBar = 0;
 bool           g_anyPrev = true;  // nến trước có chạm vùng nào không (X1 nhấn chìm)
@@ -76,14 +76,14 @@ int            g_nWatch = 0;
 struct Pending { int kind; int cell; int dir; double base; double tp1; datetime pu; bool htf; ZoneRef ref; };
 Pending        g_pend[];
 int            g_nPend = 0;
-// cản khung lớn (SPEC §25)
+// cản khung lớn
 bool           g_htfOn = false;
 CHtfZones      g_htf;
 CRng           g_rngB;           // RC-T nhóm B: dãy riêng để nhóm A không đổi
 CMinHeap       g_rctB, g_rct1B;
 int            g_bRctPlaced = 0, g_bRctDrop = 0, g_bRctDropPart = 0, g_bRctSlRedraw = 0;
 int            g_bSkipSl = 0, g_bConflict = 0, g_bxSkipSl = 0, g_bxConflict = 0;
-// xu hướng khung H1 để lọc chiều mua/bán (SPEC §21.3 lần đo 2)
+// xu hướng khung H1 để lọc chiều mua/bán
 #define EMA_N 200
 CSmcBars       g_hBars;
 CSmcStructure  g_hSt;            // pivot 5/5 trên H1
@@ -91,9 +91,9 @@ datetime       g_hLast = 0;      // giờ mở nến H1 đã đóng cuối cùng
 double         g_ema = 0.0, g_hClose = 0.0;
 int            g_emaCnt = 0;
 // đối chứng thời điểm ngẫu nhiên: việc chờ (dùng lại chỗ trống) và 2 hàng đợi theo giờ hẹn (giờ mở nến vào lệnh)
-#define RCT_ATR_TOL 0.2   // ATR lúc vào đối chứng lệch không quá 20% so với lệnh thật (SPEC §21.4)
+#define RCT_ATR_TOL 0.2   // ATR lúc vào đối chứng lệch không quá 20% so với lệnh thật
 #define RCT_TRIES   10    // số lần rút ngày tối đa
-// risk, tp1: khoảng dừng lỗ và TP1 theo giá của lệnh thật (§24: đối chứng dùng đúng các khoảng này thay cho slAtr × ATR)
+// risk, tp1: khoảng dừng lỗ và TP1 theo giá của lệnh thật
 struct RctJob { datetime due; int dir; double slAtr; double atr; double risk; double tp1; int part; int tries; int arm; };
 RctJob         g_job[];
 int            g_jobFree[];
@@ -156,7 +156,7 @@ ZoneRef ARef(int zt, int rr, int dir)
   }
 // nhóm X1 ứng với kiểu phản ứng r (R3 không có mẫu ngoài vùng: −1)
 int X1Of(int r) { return r == ZR_R1 ? 0 : (r == ZR_R2 ? 1 : (r == RI_R4 ? 2 : -1)); }
-// cách chọn mua/bán (SPEC §21.3 lần đo 2): 0 mọi tín hiệu; 1 cùng chiều xu hướng H1; 2 cùng phía EMA 200 H1
+// cách chọn mua/bán: 0 mọi tín hiệu; 1 cùng chiều xu hướng H1; 2 cùng phía EMA 200 H1
 bool ModeOk(int m, const ArmInfo &a) { return m == 0 || (m == 1 && a.trendDir == a.dir) || (m == 2 && a.emaDir == a.dir); }
 
 int AddInfo(ArmInfo &a[], int cell, int dir, datetime t, datetime pu, double atr)
@@ -200,15 +200,15 @@ void SyncH1(void)
      }
   }
 
-// SL (SPEC §22.3, như §21.3 lần đo 2): mua = đáy lớn gần nhất có giá ≤ mốc, trừ 0,1 ATR; không có thì mốc − 0,1 ATR. Bán ngược lại.
-// InpSlMode = 1 (SPEC §24, sau râu nến phản ứng): luôn mốc − 0,1 ATR (bán: + 0,1 ATR), không dời ra đáy/đỉnh lớn.
+// SL: mua = đáy lớn gần nhất có giá ≤ mốc, trừ 0,1 ATR; không có thì mốc − 0,1 ATR. Bán ngược lại.
+// InpSlMode = 1: luôn mốc − 0,1 ATR (bán: + 0,1 ATR), không dời ra đáy/đỉnh lớn.
 double WideSl(int dir, double base, double atr)
   {
    double p = InpSlMode == 1 ? 0.0 : (dir > 0 ? g_st[1].NearestLow(base) : g_st[1].NearestHigh(base));
    return (p != 0.0 ? p : base) - dir * 0.1 * atr;
   }
 
-// Khoảng TP1 theo giá (SPEC §24) từ nến phản ứng k (atr = ATR khung của chính nến đó) của lệnh chiều dir: 0 = chốt lời theo InpTpR × R;
+// Khoảng TP1 theo giá từ nến phản ứng k (atr = ATR khung của chính nến đó) của lệnh chiều dir: 0 = chốt lời theo InpTpR × R;
 // InpTp1Price > 0: cố định; < 0 "tùy lực": thân theo chiều lệnh (mua: đóng − mở; bán: mở − đóng; nến ngược chiều → 1 giá)
 // < 0,5 ATR → 1 giá; < 1 ATR → 2; < 1,5 ATR → 3; còn lại → 5
 double Tp1Of(int dir, const SmcBar &k)
@@ -219,8 +219,8 @@ double Tp1Of(int dir, const SmcBar &k)
    return f < 0.5 ? 1.0 : (f < 1.0 ? 2.0 : (f < 1.5 ? 3.0 : 5.0));
   }
 
-// Vào một lần ở tick t (mua giá Ask, bán giá Bid; TP1 tính từ giá vào này như ví dụ §24): lệnh đơn chốt ở TP1 (tp1 = 0: InpTpR × khoảng dừng lỗ risk), hoặc bản (b) của
-// §24 (InpRunnerPrice > 0): nửa A chốt ở TP1, nửa B ở giá vào ± InpRunnerPrice, cùng SL. Trả về chỉ số lệnh (nửa A).
+// Vào một lần ở tick t: lệnh đơn chốt ở TP1 (tp1 = 0: InpTpR × khoảng dừng lỗ risk), hoặc bản (b)
+// (InpRunnerPrice > 0): nửa A chốt ở TP1, nửa B ở giá vào ± InpRunnerPrice, cùng SL. Trả về chỉ số lệnh (nửa A).
 int Place(int kind, int cell, int arm, int dir, double sl, double risk, double tp1, const MqlTick &t)
   {
    double entry = dir > 0 ? t.ask : t.bid;
@@ -230,7 +230,7 @@ int Place(int kind, int cell, int arm, int dir, double sl, double risk, double t
    return g_sim.AddPair(kind, cell, arm, dir, sl, tp, entry + dir * InpRunnerPrice, t);
   }
 
-// Kết quả một lần vào ở lệnh k (lệnh đơn hoặc nửa A; nửa B ở k + 1) sau đệm trượt c mỗi chặng, mỗi nửa trả chặng của nó (SPEC §24):
+// Kết quả một lần vào ở lệnh k (lệnh đơn hoặc nửa A; nửa B ở k + 1) sau đệm trượt c mỗi chặng, mỗi nửa trả chặng của nó:
 // sum = cả lệnh theo giá; px = mỗi 0,01 lot (bản b: tổng 2 nửa / 2); r = px / khoảng dừng lỗ ban đầu. false: có nửa chưa xong khi hết dữ liệu.
 bool EntryVal(int k, double c, double &sum, double &px, double &r)
   {
@@ -302,7 +302,7 @@ void FreeJob(int s)
    g_jobFree[f] = s;
   }
 
-// Dừng lỗ đã chạm ở tick t theo đúng phía (SPEC §21.1: mua khi Bid ≤ SL, bán khi Ask ≥ SL)
+// Dừng lỗ đã chạm ở tick t theo đúng phía
 bool StopHit(int dir, double sl, const MqlTick &t) { return dir > 0 ? t.bid <= sl : t.ask >= sl; }
 
 // Lệnh thật vào ngay ở tick t (mua giá Ask, bán giá Bid) và lịch đối chứng thời điểm ngẫu nhiên hẹn theo giờ mở nến vào lệnh due
@@ -406,7 +406,7 @@ void RunRct(CMinHeap &q, datetime barOpen, double atr, const MqlTick &t, bool ht
       q.Pop();
       RctJob j = g_job[s];
       double entry = j.dir > 0 ? t.ask : t.bid;
-      double risk = g_s24 ? j.risk : j.slAtr * atr;   // §24: cùng khoảng dừng lỗ theo giá như lệnh thật (vẫn ghép giờ và ATR)
+      double risk = g_s24 ? j.risk : j.slAtr * atr;   // cùng khoảng dừng lỗ theo giá như lệnh thật (vẫn ghép giờ và ATR)
       double sl = entry - j.dir * risk;
       // không có nến đúng giờ hẹn (sàn đóng), biến động khác lệnh thật, hoặc dừng lỗ chạm ngay tick vào (như lệnh thật): rút ngày khác
       bool miss = j.due < barOpen || MathAbs(atr / j.atr - 1.0) > RCT_ATR_TOL;
@@ -456,7 +456,7 @@ void RunRct(CMinHeap &q, datetime barOpen, double atr, const MqlTick &t, bool ht
   }
 
 // Lệnh thật vừa vào: sinh đối chứng đảo chiều (vào ngay, ngược chiều, cùng khoảng dừng lỗ và cùng bội số chốt lời). Lệnh thật là
-// lệnh thị trường nên lệnh đảo chiều cũng trả đệm trượt lúc vào (cùng phí). §24: cùng khoảng dừng lỗ và TP1 theo giá, cùng phần ăn thêm.
+// lệnh thị trường nên lệnh đảo chiều cũng trả đệm trượt lúc vào (cùng phí). Cùng khoảng dừng lỗ và TP1 theo giá, cùng phần ăn thêm.
 void SpawnFlips(const MqlTick &t)
   {
    for(int q = 0; q < g_nJust; q++)
@@ -544,7 +544,7 @@ void ProcessBar(const MqlRates &r, bool trade, const MqlTick &t)
      }
    if(!g_htfOn)
       return;
-   // nhóm B (SPEC §25): như R1–R3 và X2 ở trên, trên vùng khung lớn; X1 dùng chung của nhóm A
+   // nhóm B: như R1–R3 và X2 ở trên, trên vùng khung lớn; X1 dùng chung của nhóm A
    for(int bt = 0; bt < HZ_COUNT; bt++)
       for(int rr = ZR_R1; rr <= ZR_R3; rr++)
         {
@@ -593,7 +593,7 @@ void AddWatch(int type, int dir, double top, double bottom, int start, double ex
    g_nWatch++;
   }
 
-// Một nến M1 vừa đóng (chỉ khi chạy M5): cấu trúc nội bộ M1, lần chạm M1 đầu của vùng M5, theo dõi R4 (SPEC §22.2) và mẫu X1 R4.
+// Một nến M1 vừa đóng (chỉ khi chạy M5): cấu trúc nội bộ M1, lần chạm M1 đầu của vùng M5, theo dõi R4 và mẫu X1 R4.
 // R4: CHoCH ở 1 trong 15 nến M1 sau nến chạm (không tính chính nến chạm); hủy khi một nến M1 (kể cả nến chạm) đóng qua mép xa.
 void ProcessM1(const MqlRates &r, bool live)
   {
@@ -852,7 +852,7 @@ string DiffText(CSamples &a, CSamples &b, ulong seed)
    return mean + " [" + Num(lo) + "; " + Num(hi) + "]";
   }
 
-// ex: cột thêm khi thoát theo §24 (OrderExtra), rỗng ở cách thoát mặc định
+// ex: cột thêm khi thoát kiểu scalping (OrderExtra), rỗng ở cách thoát mặc định
 string OrderLine(const MOrder &v, string name, string pu, double atr, string trend, string ema, string ex)
   {
    bool done = v.reason != MX_END;
@@ -863,7 +863,7 @@ string OrderLine(const MOrder &v, string name, string pu, double atr, string tre
                        DoubleToString(atr, _Digits), trend, ema, ex);
   }
 
-// Cột thêm của lenh.csv khi thoát theo §24: nửa (0 lệnh đơn, 1 nửa A, 2 nửa B); hòa vốn (1: nửa B đã dời SL về giá vào); kết quả
+// Cột thêm của lenh.csv khi thoát kiểu scalping: nửa (0 lệnh đơn, 1 nửa A, 2 nửa B); hòa vốn (1: nửa B đã dời SL về giá vào); kết quả
 // nửa này theo giá sau phí; ở dòng lệnh đơn / nửa A: kết quả cả lần vào theo giá (tổng các nửa), mỗi 0,01 lot, R của lần vào
 string OrderExtra(int k)
   {
@@ -1034,7 +1034,7 @@ class CRowData
   {
 public:
    CSamples          rFill, dCtrl, dFlip;
-   CSamples          pFill, pCtrl, pFlip;   // như trên nhưng theo giá mỗi 0,01 lot (§24)
+   CSamples          pFill, pCtrl, pFlip;   // như trên nhưng theo giá mỗi 0,01 lot
    double            pairSum;               // tổng R lệnh thật trong nhóm ghép với RC-T
    int               armed, filled, wins;
                      CRowData(void) : pairSum(0.0), armed(0), filled(0), wins(0) {}
@@ -1087,7 +1087,7 @@ string RowText(CRowData &d, CSamples &x1R, CSamples &x1P, int g1, CSamples &x2R,
    string x1 = g1 < 0 ? "không có (R3 cần vùng)" : DiffText(d.rFill, x1R, seed + 5);
    string x2 = DiffText(d.rFill, x2R, seed + 7);
    int nPair = d.dCtrl.Count();
-   // §24: thêm kết quả và các hiệu theo giá mỗi 0,01 lot cạnh cột R (hiệu theo R với X1, X2 không so được khi SL dài khác nhau)
+   // thêm kết quả và các hiệu theo giá mỗi 0,01 lot cạnh cột R (hiệu theo R với X1, X2 không so được khi SL dài khác nhau)
    string pxText = "", ctrlPxT = "", flipPxT = "";
    if(g_s24)
      {
@@ -1153,7 +1153,7 @@ double OnTester()
          S.nRcd++;
         }
      }
-   // nhóm X theo cách chọn chiều × nhóm × phần: R (xs) và kết quả theo giá mỗi 0,01 lot (xsPx, §24)
+   // nhóm X theo cách chọn chiều × nhóm × phần: R (xs) và kết quả theo giá mỗi 0,01 lot
    CSamples xs[3 * XG_COUNT * 2], xsPx[3 * XG_COUNT * 2];
    int xWin[3 * XG_COUNT * 2];
    ArrayInitialize(xWin, 0);
@@ -1224,7 +1224,7 @@ double OnTester()
    lines[nl++] = StringFormat("RC-T: %d việc (%d × %d lệnh thật đã vào) = đã vào %d + bỏ vì hết %d lần rút (sàn đóng / biến động khác / dừng lỗ chạm ngay tick vào) %d + bỏ vì sang phần dữ liệu khác %d + còn chờ khi hết dữ liệu (ngày hẹn sau ngày cuối) %d → %s; rút lại vì dừng lỗ chạm ngay tick vào %d lần; RC-T đã vào mà chưa xong khi hết dữ liệu %d; lệnh thật đã xong mà không có RC-T nào xong %d (không có trong cột thật − RC-T). RC-D đã xong %d. Tự kiểm tra: lệnh ảo bị dừng lỗ ngay ở tick vào %d (phải bằng 0).",
                               rctJobs, InpControls, placed, g_rctPlaced, RCT_TRIES, g_rctDrop, g_rctDropPart, rctQueued, rctSumOk ? "khớp" : "LỆCH",
                               g_rctSlRedraw, SA.rctEnd, SA.NoCtrl(g_arms), SA.nRcd, g_slAtEntry);
-   // SPEC §25: các dòng đầu về khung lớn (bắt đầu "HTF"), sau 3 dòng của nhóm A
+   // các dòng đầu về khung lớn (bắt đầu "HTF"), sau 3 dòng của nhóm A
    if(g_htfOn)
      {
       g_htf.W1Check();

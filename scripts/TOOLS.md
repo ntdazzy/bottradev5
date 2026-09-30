@@ -3,7 +3,7 @@
 Đọc file này trước khi gõ lệnh mới. Có công cụ phù hợp thì dùng công cụ đó.
 
 Danh mục này mô tả công cụ đang có, không phải luật của bot mới. Nguồn luật là `docs/SPEC.md`.
-Các công cụ nghiên cứu bên dưới chưa được nghiệm thu cho `SCP-MTF-1.0-draft`;
+Các công cụ nghiên cứu bên dưới chưa được nghiệm thu cho `SCP-MTF-1.3-review-fixes`;
 không chạy cả bộ hoặc dùng kết luận của chúng làm bằng chứng đạt SPEC mới.
 
 Máy khác có thể đặt `$env:BOTVANG_MT5_DATA` (thư mục `File → Open Data Folder`) và
@@ -137,7 +137,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-script.ps1 -Scri
 - `LabVerify`: kiểm chứng độc lập một lần chạy BotVangLab bằng tick thật trên terminal (nến chạm đúng luật,
   giá vào, kết quả +kB/−1B).
 
-## `ScpVerify` + `BotScpMtf` — bot SCP-MTF-1.0 (thiết kế mới)
+## `ScpVerify` + `BotScpMtf` — bot SCP-MTF-1.3 (thiết kế mới)
 
 - Hồ sơ `lab/scp_price_exit.set` kiểm bản `SCP-MTF-1.1-price-exit`: không đóng theo tuổi lệnh,
   tối thiểu 1,5 lời/lỗ sau tính cả phần chốt; chốt phần tại 3 giá, bảo vệ giá vào 2,5 giá cho vị thế không chia được.

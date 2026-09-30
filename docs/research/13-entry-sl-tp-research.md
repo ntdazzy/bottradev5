@@ -117,10 +117,7 @@ Một số bài 2025–2026 chỉ được tóm tắt qua công cụ tra cứu, 
 
 ## 9. Những gì repo còn thiếu để đo công bằng
 
-- Chưa so vùng của bot với **mức giá ngẫu nhiên** (chỉ mới so thời điểm ngẫu nhiên và đánh ngược).
 - Phép so ngẫu nhiên/ngược chiều/đua 1R:1R của tháng 8 chạy bằng script tạm, không còn trong repo.
-- Chưa ghi MFE/MAE theo từng tín hiệu (kể cả tín hiệu bị loại); `ke_hoach.csv` thiếu giá khớp, mốc vô hiệu, ATR, spread, loại phản ứng.
-- Chưa có công cụ đo lệnh chờ trên giấy (tỷ lệ khớp, kết quả lệnh khớp và lệnh bị bỏ lỡ) và chi phí/ATR theo giờ.
 - Mã lệch SPEC đáng chú ý: vùng M1 thực tế không bao giờ làm đích; xung đột bỏ cả loạt đề nghị; S05 có thể vào cuối nến rất dài;
   chưa có đỉnh/đáy ngày-tuần trước và số tròn; FVG không bao giờ được nâng thành STRUCTURE_CONFIRMED.
 

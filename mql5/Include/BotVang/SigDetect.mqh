@@ -156,7 +156,6 @@ public:
    int               MinorRejected() { return m_minor_rejected; }
    int               LimitFills() { return m_limit; }
    int               Merged() { return m_merged; }
-   int               ActiveCount() { return m_n; }
 
    // Mỗi báo giá: mở lần chạm mới trên các cản gần, cập nhật cực trị các lần chạm đang mở.
    void              OnTick(SigLevelBook &book, const int &near[], int near_n, double bid, datetime now,

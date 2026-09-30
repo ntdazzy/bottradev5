@@ -1,4 +1,4 @@
-// Trạng thái cần nhớ qua các lần khởi động lại (SPEC §14.3), lưu bằng Global Variables của terminal.
+// Trạng thái cần nhớ qua các lần khởi động lại, lưu bằng Global Variables của terminal.
 // Tên khóa: BV_<Login>_<Server>_<Symbol>_<Magic>_v2_<khóa>. Chỉ ghi khi giá trị đổi, flush một lần mỗi lượt.
 #ifndef BOTVANG_STATE_MQH
 #define BOTVANG_STATE_MQH

@@ -26,7 +26,7 @@ input ENUM_BIAS_MODE InpBiasMode = BIAS_H4_H1;   // Hướng lớn
 input int      InpMinEntryScore = 4;             // Điểm vùng tối thiểu
 input int      InpStrongScore = 6;               // Điểm của cản mạnh
 input double   InpMinRoomB = 2.0;                // Khoảng tới cản mạnh đối diện >= x × B
-input bool     InpAllowFresh = false;            // Vào cả vùng còn mới chưa lật (tùy chọn §7.1)
+input bool     InpAllowFresh = false;            // Vào cả vùng còn mới chưa lật
 input group "Chạy lệnh (§8, §9)"
 input double   InpStepAtrMult = 0.8;             // B = max(x × ATR(M5), ...)
 input double   InpStepMinSpreadMult = 5.0;       // ... , y × chênh lệch)
@@ -73,7 +73,7 @@ string   g_initError = "";
 
 int OnInit()
   {
-   // Lot = lot nhỏ nhất của sàn hoặc gấp đôi (vàng, BTC: 0.01/0.02; ETH: 0.10/0.20). Không bao giờ tự tăng/giảm (SPEC §2)
+   // Lot = lot nhỏ nhất của sàn hoặc gấp đôi (vàng, BTC: 0.01/0.02; ETH: 0.10/0.20). Không bao giờ tự tăng/giảm
    double vmin = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
    if(MathAbs(InpLot - vmin) > 1e-9 && MathAbs(InpLot - 2 * vmin) > 1e-9)
      {
@@ -124,7 +124,7 @@ int OnInit()
    g_e.mc.afterOpenMin = InpAfterOpenMin;
    g_e.mc.maxSpread = InpMaxSpread;
    g_e.mc.newsFilter = InpNewsFilter;
-   g_e.mc.newsRequired = !MQLInfoInteger(MQL_TESTER);   // chạy thật: bật lọc tin mà không có lịch tin thì không vào (§12.2)
+   g_e.mc.newsRequired = !MQLInfoInteger(MQL_TESTER);   // chạy thật: bật lọc tin mà không có lịch tin thì không vào
    g_e.mc.specIsSummer = MQLInfoInteger(MQL_TESTER) && InpSpecSummer;
    g_e.botOn = InpStartOn;
    g_e.flipMode = InpFlipMode;

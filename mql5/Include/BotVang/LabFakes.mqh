@@ -1,4 +1,4 @@
-// Vùng giả đối chứng của BotVangLab (SPEC §16.3): sinh quanh vùng thật lúc vùng thật được tạo, dịch cả dải
+// Vùng giả đối chứng của BotVangLab: sinh quanh vùng thật lúc vùng thật được tạo, dịch cả dải
 // ± U(0,5; 3) × biến động, rồi đi qua cùng luật phá/lật/chạm (ZoneStep). Nằm riêng, không ảnh hưởng vùng thật
 // (không chặn trùng, không hợp lưu, không làm cản, không tính vào giới hạn 60 vùng của vùng thật).
 #ifndef BOTVANG_LABFAKES_MQH
@@ -7,7 +7,7 @@
 #include "Zones.mqh"
 #include "LabRandom.mqh"
 
-// Số vùng giả mỗi vùng thật (§16.3) trước khi nhân hệ số: khung lớn ít sự kiện hơn nên cần nhiều vùng giả hơn
+// Số vùng giả mỗi vùng thật trước khi nhân hệ số: khung lớn ít sự kiện hơn nên cần nhiều vùng giả hơn
 int FakesBase(ENUM_TIMEFRAMES tf)
   {
    switch(tf)
@@ -68,7 +68,7 @@ public:
      }
 
    // Sinh vùng giả cho một vùng thật vừa tạo. Vị trí chỉ phụ thuộc hạt giống, vùng thật và các vùng thật đang có.
-   // Luật đặt (§16.3, §16.8): cùng phía giá như vùng thật; không chồng dải vùng thật còn sống cùng khung (mọi vai).
+   // Luật đặt: cùng phía giá như vùng thật; không chồng dải vùng thật còn sống cùng khung (mọi vai).
    // Vùng thật khác khung rất dày nên không thể tránh hết lúc đặt; thay vào đó, sự kiện của vùng giả đang chồng lên
    // bất kỳ vùng thật nào lúc chạm bị loại khỏi kho đối chứng (FakeOverlapsReal).
    void              Spawn(const Zone &real, const Zone &reals[], int nReal, double price)

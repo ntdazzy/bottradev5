@@ -1,4 +1,4 @@
-// SmcLab: đo lợi thế 4 cách vào lệnh SMC (SPEC §21.3) so với đối chứng (SPEC §21.4). CHỈ ĐỂ ĐO trong Strategy Tester,
+// SmcLab: đo lợi thế 4 cách vào lệnh SMC so với đối chứng. CHỈ ĐỂ ĐO trong Strategy Tester,
 // "mọi tick theo tick thật". Khung đo = khung chạy tester (lần đo 2: M1, M5). Không đặt lệnh thật.
 #property copyright "BotVang"
 #property version   "1.00"
@@ -53,14 +53,14 @@ int            g_fvgWaitDir[2], g_fvgWaitLeg[2], g_fvgWaitBreak[2];
 bool           g_sweepOk[2];     // [0] quét tăng (dir +1), [1] quét giảm
 int            g_sweepBar[2];
 double         g_sweepExt[2];
-// mô hình ICT chờ thêm 1 nến như FVG (SPEC §21.3)
+// mô hình ICT chờ thêm 1 nến như FVG
 struct IctWait { bool on; int dir; int leg; int brk; double ext; bool ob; double obLo; double obHi; };
 IctWait        g_ictWait;
 // kho khoảng cách/độ cao (theo ATR) của lệnh thật để sinh đối chứng mức ngẫu nhiên
 // d: giá đóng − giá vào; h: giá vào − SL; e: giá vào − mép hủy vùng; tp: bội số chốt lời
 struct Pool { double d[]; double h[]; double e[]; double tp[]; };
 Pool           g_pool[CELL_COUNT];
-// xu hướng khung H1 để lọc chiều mua/bán (SPEC §21.3 lần đo 2)
+// xu hướng khung H1 để lọc chiều mua/bán
 #define EMA_N 200
 CSmcBars       g_hBars;
 CSmcStructure  g_hSt;            // pivot 5/5 trên H1
@@ -68,7 +68,7 @@ datetime       g_hLast = 0;      // giờ mở nến H1 đã đóng cuối cùng
 double         g_ema = 0.0, g_hClose = 0.0;
 int            g_emaCnt = 0;
 // hàng chờ đối chứng thời điểm ngẫu nhiên (due = giờ mở nến vào lệnh)
-#define RCT_ATR_TOL 0.2   // ATR lúc vào đối chứng lệch không quá 20% so với lệnh thật (SPEC §21.4)
+#define RCT_ATR_TOL 0.2   // ATR lúc vào đối chứng lệch không quá 20% so với lệnh thật
 #define RCT_TRIES   10    // số lần rút ngày tối đa
 struct RctJob { datetime due; int dir; double slAtr; double atr; int part; int tries; int arm; };
 RctJob         g_rct[];
@@ -330,7 +330,7 @@ void SpawnFlips(const MqlTick &t)
      }
   }
 
-// Một lớp cấu trúc vừa phá ở nến i: đặt các lệnh FVG và OB (SPEC §21.3)
+// Một lớp cấu trúc vừa phá ở nến i: đặt các lệnh FVG và OB
 void OnBreak(int layer, const SmcBreak &ev, const MqlTick &t)
   {
    if(ev.initial)
@@ -629,7 +629,7 @@ double OnTester()
    lines[nl++] = StringFormat("Chốt lời %sR. Cột: chọn chiều | ô | phần | lần đặt | khớp (%%) | thắng (%%) | R TB lệnh khớp (sau phí) [KTC95] | thật − đối chứng ngẫu nhiên / lần đặt [KTC95] | thật − đảo chiều [KTC95] | kết luận",
                               DoubleToString(InpTpR, 1));
    string parts[2] = {"kham pha", "kiem tra"};
-   // cách chọn mua/bán (SPEC §21.3 lần đo 2): mọi tín hiệu; chỉ lệnh cùng chiều xu hướng H1; chỉ lệnh cùng phía EMA 200 H1
+   // cách chọn mua/bán: mọi tín hiệu; chỉ lệnh cùng chiều xu hướng H1; chỉ lệnh cùng phía EMA 200 H1
    string modes[3] = {"tin hieu", "xu huong H1", "EMA200 H1"};
    for(int m = 0; m < 3; m++)
    for(int c = 0; c < CELL_COUNT; c++)
@@ -676,7 +676,7 @@ double OnTester()
          string verdict = filled < 100 ? "ít dữ liệu" : "";
          if(p == 0 && ciOk)
             verdict += (verdict != "" ? ", " : "") + (lo > 0.0 && rFill.Mean() > 0.0 ? "ĐẠT (khám phá)" : "KHÔNG ĐẠT");
-         // phần kiểm tra (lần đo 2, SPEC §21.4): khoảng tin cậy cũng phải trên 0 mới đạt
+         // phần kiểm tra: khoảng tin cậy cũng phải trên 0 mới đạt
          if(p == 1 && dCtrl.Count() > 0)
             verdict += (verdict != "" ? ", " : "") + (rFill.Mean() > 0.0 && ciOk && lo > 0.0 ? "ĐẠT (kiểm tra)" :
                         (dCtrl.Mean() > 0.0 && rFill.Mean() > 0.0 ? "cùng dấu dương, chưa chắc" : "không giữ được"));

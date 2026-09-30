@@ -1,4 +1,4 @@
-// Vùng giá (SPEC v2 §5, §6.1): tìm mức A/V, Gap, đỉnh/đáy cũ; cập nhật trạng thái trên nến M5 đã đóng;
+// Vùng giá: tìm mức A/V, Gap, đỉnh/đáy cũ; cập nhật trạng thái trên nến M5 đã đóng;
 // chấm điểm sức mạnh. ZoneStep/ZoneScore dùng chung cho vùng thật và vùng giả của BotVangLab.
 // Mọi việc chạy theo thời gian của nến M5 vừa đóng (Step), nên lúc nạp lịch sử và lúc chạy đi cùng một đường code.
 #ifndef BOTVANG_ZONES_MQH
@@ -7,9 +7,9 @@
 #include "Types.mqh"
 
 #define ZONE_TF_COUNT 4
-#define ZONE_REFERENCE_FROM 3   // §5.5 ReferenceOnlyFromTouch: từ lần chạm 3 chỉ còn tham khảo
+#define ZONE_REFERENCE_FROM 3   // ReferenceOnlyFromTouch: từ lần chạm 3 chỉ còn tham khảo
 
-// Lần chạm thứ mấy nếu giá tới vùng lúc này (§5.5): đã rời xa thì là lần kế tiếp, đang ở trong/sát vùng thì là lần hiện tại.
+// Lần chạm thứ mấy nếu giá tới vùng lúc này: đã rời xa thì là lần kế tiếp, đang ở trong/sát vùng thì là lần hiện tại.
 int ZoneApproachN(const Zone &z) { return z.away ? z.touches + 1 : MathMax(z.touches, 1); }
 
 // Vùng còn làm cản được không (lần chạm 1–2)
@@ -45,8 +45,8 @@ int ZoneStep(Zone &z, const MqlRates &b, double atrM5, const ZoneRules &r)
          z.bouncesBeforeFlip = z.bounces;
          z.bounces = 0;
          z.touches = 0;
-         // [GỐC] đúng chữ §5.3: sau lật phải rời >= awayAtr × biến động rồi mới tính chạm;
-         // biến thể "chạm ngay" (code bản 1, Rare SnR): coi nến phá là đã rời vùng; [ỨNG VIÊN] §7.2: rời >= retestAwayAtrM5 × ATR(M5)
+         // [GỐC] đúng chữ: sau lật phải rời >= awayAtr × biến động rồi mới tính chạm;
+         // biến thể "chạm ngay" (code bản 1, Rare SnR): coi nến phá là đã rời vùng; [ỨNG VIÊN]: rời >= retestAwayAtrM5 × ATR(M5)
          z.away = !r.flipNeedsAway && r.retestAwayAtrM5 <= 0.0;
          z.inTouch = false;
          z.barsInside = 0;
@@ -77,7 +77,7 @@ int ZoneStep(Zone &z, const MqlRates &b, double atrM5, const ZoneRules &r)
          z.away = false;
          z.inTouch = true;
          ev |= ZEV_TOUCH;
-         // §5.4: chạm lần đầu khi vùng đang "mới", râu vào dải và giá mở nằm ngoài dải về phía giá đi tới.
+         // chạm lần đầu khi vùng đang "mới", râu vào dải và giá mở nằm ngoài dải về phía giá đi tới.
          // Mở sai phía vẫn là một lần chạm nhưng không phải "lần chạm đầu" để vào lệnh.
          bool openOk = z.isRes ? b.open < z.lo : b.open > z.hi;
          if(z.touches == 1 && openOk)
@@ -105,7 +105,7 @@ int ZoneStep(Zone &z, const MqlRates &b, double atrM5, const ZoneRules &r)
    return ev;
   }
 
-// Điểm sức mạnh §6.1 [GỐC – giả định]. others = danh sách vùng thật; hợp lưu (đúng chữ §6.1) đếm mọi vùng thật khác còn sống
+// Điểm sức mạnh [GỐC – giả định]. others = danh sách vùng thật; hợp lưu đếm mọi vùng thật khác còn sống
 // có đường mức cách <= 0,3 × ATR(M15), tối đa 3. prevDayStart: lúc bắt đầu ngày hiện tại (chỉ đỉnh/đáy của đúng hôm qua được +2).
 int ZoneScore(const Zone &z, const Zone &others[], int n, double atrM15, datetime prevDayStart)
   {
@@ -301,7 +301,7 @@ private:
      }
 
    // Đỉnh/đáy ngày hôm trước theo nến D1 của sàn; bỏ nến ngày Chủ nhật/thứ Bảy (nến ngắn), trừ ký hiệu giao dịch cả cuối tuần.
-   // Dải = mức ± 0,15 × ATR(D1) (biến động của khung tạo vùng, đúng chữ §3, §5.1). Tạo lúc nến D1 mới mở (dayOpen).
+   // Dải = mức ± 0,15 × ATR(D1). Tạo lúc nến D1 mới mở (dayOpen).
    void              DetectPrevDay(datetime dayOpen)
      {
       MqlRates d[];
@@ -416,7 +416,7 @@ public:
          if(open != m_lastBar[t])
            {
             // Vàng: nến ngày thứ Bảy/Chủ nhật (sàn mở tối Chủ nhật) không phải ngày giao dịch: không tạo vùng ngày, không đổi mốc
-            // "hôm nay"; tới 00:00 thứ Hai mới tạo đỉnh/đáy thứ Sáu, để suốt thứ Hai chúng đúng là "hôm qua" (§6.1).
+            // "hôm nay"; tới 00:00 thứ Hai mới tạo đỉnh/đáy thứ Sáu, để suốt thứ Hai chúng đúng là "hôm qua".
             // Ký hiệu giao dịch cả cuối tuần (BTC, ETH): mọi ngày đều là ngày giao dịch.
             MqlDateTime od;
             TimeToStruct(open, od);
@@ -597,7 +597,7 @@ public:
      }
 
    // Cản mạnh gần nhất phía trước theo chiều lệnh: dir = 1 tìm kháng cự phía trên, -1 tìm hỗ trợ phía dưới.
-   // Chỉ tính vùng còn làm cản (lần chạm 1–2, §5.5). Giá nằm trong dải → khoảng cách 0.
+   // Chỉ tính vùng còn làm cản. Giá nằm trong dải → khoảng cách 0.
    int               NearestStrong(int dir, double price, int strongScore, double &dist)
      {
       int best = -1;

@@ -1,4 +1,4 @@
-// Bảng điều khiển trên biểu đồ (SPEC §15): trạng thái + lý do, hướng lớn, biến động, chênh lệch, giờ chạy, tin sắp tới,
+// Bảng điều khiển trên biểu đồ: trạng thái + lý do, hướng lớn, biến động, chênh lệch, giờ chạy, tin sắp tới,
 // cản/hỗ trợ gần nhất, lệnh đang chạy, lời/lỗ ngày/tuần/tổng, giới hạn ngày đã dùng, trượt giá; các nút; vẽ vùng.
 #ifndef BOTVANG_PANEL_MQH
 #define BOTVANG_PANEL_MQH

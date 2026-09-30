@@ -1,4 +1,4 @@
-// Thống kê của BotVangLab (SPEC §16.5–16.6): khoảng Wilson, mức hòa vốn p*_k, bootstrap theo khối ngày.
+// Thống kê của BotVangLab: khoảng Wilson, mức hòa vốn p*_k, bootstrap theo khối ngày.
 #ifndef BOTVANG_LABSTATS_MQH
 #define BOTVANG_LABSTATS_MQH
 
@@ -48,7 +48,7 @@ void Wilson(int k, int n, double z, double &lo, double &hi)
    hi = MathMin(1.0, (centre + margin) / den);
   }
 
-// Mức hòa vốn với mục tiêu +kB, dừng −1B, chi phí ngoài chênh lệch c (theo giá) (§16.5)
+// Mức hòa vốn với mục tiêu +kB, dừng −1B, chi phí ngoài chênh lệch c (theo giá)
 double BreakEvenP(double B, double c, int k) { return (B + c) / ((k + 1) * B); }
 
 // Mẫu theo sự kiện, có ngày (khối) để bootstrap. Thống kê = tổng x / số sự kiện.
@@ -165,7 +165,7 @@ public:
       return true;
      }
    // Hiệu trung bình (nhóm này − nhóm other) của hai nhóm độc lập: mỗi lần rút lại ngày có hoàn lại riêng cho từng nhóm
-   // (số ngày rút = số ngày có sự kiện của nhóm đó), iters lần; cận = giá trị thứ rank từ hai đầu (SPEC §22.4).
+   // (số ngày rút = số ngày có sự kiện của nhóm đó), iters lần; cận = giá trị thứ rank từ hai đầu.
    bool              DiffCI(const CSamples &other, int iters, ulong seed, int rank, double &lo, double &hi) const
      {
       if(m_n == 0 || other.m_n == 0 || rank < 1 || 2 * rank > iters)

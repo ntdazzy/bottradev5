@@ -1,4 +1,4 @@
-// Sổ lệnh của BotFvgNhanChim (SPEC §23.2): các lệnh đang mở của bot (đúng Magic + Symbol). Thông tin lúc vào lệnh (nến tín hiệu,
+// Sổ lệnh của BotFvgNhanChim: các lệnh đang mở của bot (đúng Magic + Symbol). Thông tin lúc vào lệnh (nến tín hiệu,
 // vùng, giá gửi, dừng lỗ, chốt lời, lý do bot đang đóng) lưu trong State, mỗi lệnh một chỗ, nên khởi động lại không mất.
 // Đối chiếu với sàn: nhận lại lệnh đang mở, gắn thông tin tín hiệu cho lệnh vừa gửi, đọc kết quả lệnh đã đóng từ lịch sử deal
 // (kể cả lệnh đóng lúc bot không chạy).

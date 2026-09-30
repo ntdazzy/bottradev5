@@ -1,4 +1,4 @@
-// Lệnh ảo của SmcLab (SPEC §21.1, §21.3): lệnh giới hạn hoặc vào ngay, khớp theo tick đúng phía, dừng lỗ/chốt lời, hủy theo luật.
+// Lệnh ảo của SmcLab: lệnh giới hạn hoặc vào ngay, khớp theo tick đúng phía, dừng lỗ/chốt lời, hủy theo luật.
 // Để chạy nhanh trên hàng chục triệu tick: chỉ duyệt các lệnh khi giá chạm một ngưỡng nào đó (giữ 4 ngưỡng gần nhất).
 #ifndef BOTVANG_SMCSIM_MQH
 #define BOTVANG_SMCSIM_MQH

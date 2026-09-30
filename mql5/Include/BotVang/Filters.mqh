@@ -1,4 +1,4 @@
-// Bộ lọc (SPEC v2 §3, §12): giờ chạy theo phút VN, giờ nghỉ của sàn, chênh lệch, tin mạnh USD, biến động thấp.
+// Bộ lọc: giờ chạy theo phút VN, giờ nghỉ của sàn, chênh lệch, tin mạnh USD, biến động thấp.
 #ifndef BOTVANG_FILTERS_MQH
 #define BOTVANG_FILTERS_MQH
 
@@ -11,7 +11,7 @@ void VnClock(datetime server, int vnOffsetHours, int &minute, int &dow)
    dow = t.day_of_week;
   }
 
-// Khung giờ chạy [startMin, endMin) theo phút VN, thứ 2–thứ 6 VN. endMin = 1440 nghĩa là tới 00:00 hôm sau (§3).
+// Khung giờ chạy [startMin, endMin) theo phút VN, thứ 2–thứ 6 VN. endMin = 1440 nghĩa là tới 00:00 hôm sau.
 bool InTimeWindow(datetime server, int vnOffsetHours, int startMin, int endMin)
   {
    int m, dow;
@@ -83,7 +83,7 @@ bool SessionInfo(const string sym, datetime server, int &minsToEnd, int &minsFro
   }
 
 // Lịch tin mạnh USD. Chạy thật: lịch kinh tế của MT5. Strategy Tester: file CSV do script ExportNews tạo
-// (Common\Files\BotVang\news_usd.csv, giờ sàn). Không có dữ liệu thì available = false (§12.2).
+// (Common\Files\BotVang\news_usd.csv, giờ sàn). Không có dữ liệu thì available = false.
 class CNews
   {
 private:

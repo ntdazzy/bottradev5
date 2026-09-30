@@ -1,4 +1,4 @@
-// ScpSeries.mqh — chuỗi nến, chỉ báo, pivot và hướng khung cho bot SCP-MTF-1.0.
+// ScpSeries.mqh — chuỗi nến, chỉ báo, pivot và hướng khung cho bot SCP-MTF-1.3.
 // Nguồn luật: docs/SPEC.md mục 4, 5.1 (EMA), 14.1, 14.2.
 // File chỉ tính trên nến đã đóng do bên gọi đưa vào; không đọc MT5, không gửi lệnh.
 #ifndef SCP_SERIES_MQH
@@ -230,13 +230,11 @@ public:
      }
 
    int               Count() { return m_count; }
-   ENUM_SCP_TF       Tf() { return m_tf; }
    ScpFrameInfo      Info() { return m_info; }
    ENUM_SCP_DIR      Dir() { return m_info.dir; }
    double            Atr() { return m_info.atr; }
    int               PivotCount() { return m_pivot_count; }
    ScpPivot          Pivot(int i) { return m_pivots[i]; }
-   int               PivotN() { return m_pivot_n; }
 
    ScpBar            Bar(int idx)
      {
@@ -285,12 +283,6 @@ public:
          if(m_pivots[i].id == m_info.protected_pivot_id)
             return m_pivots[i].price;
       return 0.0;
-     }
-
-   long              LastPivotId(bool is_high)
-     {
-      int i = LastPivot(is_high);
-      return (i >= 0) ? m_pivots[i].id : -1;
      }
 
    double            LastPivotPrice(bool is_high)
@@ -411,13 +403,6 @@ public:
          m_s[i].Reset();
      }
 
-   bool              AllReady()
-     {
-      for(int i = 0; i < SCP_TF_COUNT; i++)
-         if(!m_s[i].Info().data_ok)
-            return false;
-      return true;
-     }
   };
 
 #endif // SCP_SERIES_MQH

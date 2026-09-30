@@ -1,4 +1,4 @@
-// Luật scalping M1 §26: M1 chọn vùng/điểm vào, H1 chọn chiều, khung lớn làm bối cảnh/cản. Không gửi lệnh.
+// Luật scalping M1: M1 chọn vùng/điểm vào, H1 chọn chiều, khung lớn làm bối cảnh/cản. Không gửi lệnh.
 #ifndef BOTVANG_SCALPSIGNAL_MQH
 #define BOTVANG_SCALPSIGNAL_MQH
 

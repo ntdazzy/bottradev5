@@ -1,4 +1,4 @@
-// Gửi lệnh (SPEC §13.1, §14.1, §14.2): đọc thông số từ sàn, khóa yêu cầu trùng, thử lại có giới hạn chỉ với lỗi tạm thời,
+// Gửi lệnh: đọc thông số từ sàn, khóa yêu cầu trùng, thử lại có giới hạn chỉ với lỗi tạm thời,
 // xác minh trước khi thử lại lệnh mở/lệnh chờ đảo, ngắt tạm khi lỗi liên tiếp. Chỉ đụng lệnh đúng Magic + Symbol.
 #ifndef BOTVANG_EXEC_MQH
 #define BOTVANG_EXEC_MQH
@@ -51,7 +51,7 @@ private:
       return k >= 0 && k < RQ_COUNT ? n[k] : "?";
      }
 
-   // Yêu cầu mở/đặt lệnh chờ trước đó đã tới sàn chưa (phòng trường hợp bot chưa nhận phản hồi) — §14.2
+   // Yêu cầu mở/đặt lệnh chờ trước đó đã tới sàn chưa (phòng trường hợp bot chưa nhận phản hồi)
    bool              AlreadyDone(const PendingReq &p)
      {
       for(int i = PositionsTotal() - 1; i >= 0; i--)

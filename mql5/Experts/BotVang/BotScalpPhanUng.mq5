@@ -1,4 +1,4 @@
-// §26: bot thử nghiệm phản ứng theo cản; cùng EA dùng trong máy thử và demo.
+// bot thử nghiệm phản ứng theo cản; cùng EA dùng trong máy thử và demo.
 #property copyright "BotVang"
 #property version "1.20"
 #property description "Điểm vào theo phản ứng/lệnh chờ, chốt theo cản, bảo vệ giá vào. Mặc định TẮT, chỉ demo."

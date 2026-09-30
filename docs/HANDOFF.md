@@ -1,10 +1,10 @@
 # Bàn giao — Bot scalping theo phản ứng giá
 
-Cập nhật 28/09/2026. Nguồn luật: `docs/SPEC.md`; nền tảng MQL5 đã được chủ bot chốt.
+Cập nhật 30/09/2026. Nguồn luật: `docs/SPEC.md`; nền tảng MQL5 đã được chủ bot chốt.
 
 ## Cập nhật 29/09 — nghiên cứu điểm vào/SL/TP (Claude)
 
-Chỉ nghiên cứu, chưa sửa mã/SPEC. Tổng hợp tại `docs/research/13-entry-sl-tp-research.md`.
+Tổng hợp nghiên cứu điểm vào/SL/TP tại `docs/research/13-entry-sl-tp-research.md`.
 Chủ bot định hướng: tìm cản ở khung lớn (M15, M30, H1, H4, D1, W1), M1/M5 chỉ để tìm điểm vào; né tin;
 làm công cụ đo tín hiệu (so ngẫu nhiên/đánh ngược/mức giá ngẫu nhiên) trước khi đổi cách vào.
 
@@ -63,7 +63,7 @@ K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo tr�
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 
 Chủ bot duyệt sửa sau review; luật đã ghi ở SPEC (đầu file, mục 6.3, 8 S01, 11.2, 11.2a, 11.3, 13, 14.2, 14.7, 14.10).
-Chưa commit/push; không bật demo/thật. Các mục "Trạng thái/Bằng chứng" bên dưới là của bản 1.1, giữ làm lịch sử.
+Không bật demo/thật. Các mục "Trạng thái/Bằng chứng" bên dưới là của bản 1.1, giữ làm lịch sử.
 
 Đã sửa (công tắc trong EA để so trước/sau):
 - Thoát vì mốc vô hiệu chỉ khi nến M1 đóng qua mốc (trước: chạm là đóng, vô hiệu hóa đệm dừng).
@@ -132,7 +132,6 @@ không chỉ một nhịp hồi bình thường. Dừng khẩn cấp và giới 
 Đã sửa các nhóm lỗi sau review, không đổi ngôn ngữ và không bật demo/thật.
 Đây chưa phải chứng nhận toàn bộ SPEC hoặc chứng minh lợi nhuận.
 Chủ bot cho phép khởi động lại MT5 chính để kiểm tra; không được đụng bản MT5 portable của dự án khác.
-Chưa commit/push trong lượt sửa này.
 
 ## Những thay đổi đã có trong mã
 

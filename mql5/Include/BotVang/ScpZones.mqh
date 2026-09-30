@@ -1,4 +1,4 @@
-// ScpZones.mqh — sổ vùng giá của bot SCP-MTF-1.0.
+// ScpZones.mqh — sổ vùng giá của bot SCP-MTF-1.3.
 // Nguồn luật: docs/SPEC.md mục 5, 6.1, 14.3.
 // Chỉ nhận nến đã đóng; không đọc MT5, không gửi lệnh.
 #ifndef SCP_ZONES_MQH
@@ -235,20 +235,6 @@ public:
       return MergeOrInsert(z);
      }
 
-   void              SetLevel(long id, ENUM_SCP_ZONE_LEVEL lv)
-     {
-      int i = SlotOf(id);
-      if(i >= 0)
-           {
-            if(lv > m_z[i].level)
-              {
-               m_z[i].level = lv;
-               m_z[i].version++;
-              }
-            return;
-           }
-     }
-
    // Một lần chạm độc lập: hai lần chạm trở lên nâng REFERENCE_ONLY thành REACTION_ONLY.
    void              RegisterTouch(long id, datetime t)
      {
@@ -418,23 +404,6 @@ public:
         }
      }
 
-   // Vùng chứa giá (dùng nhận biết đang ở trong vùng lớn).
-   bool              ZoneContaining(double bid, long &out_id, double &out_bottom, double &out_top)
-     {
-      for(int i = 0; i < m_count; i++)
-        {
-         if(!m_z[i].alive)
-            continue;
-         if(ScpBetween(bid, m_z[i].bottom, m_z[i].top))
-           {
-            out_id = m_z[i].id;
-            out_bottom = m_z[i].bottom;
-            out_top = m_z[i].top;
-            return true;
-           }
-        }
-      return false;
-     }
   };
 
 #endif // SCP_ZONES_MQH

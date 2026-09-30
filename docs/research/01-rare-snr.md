@@ -446,4 +446,3 @@ Quy trình rút ra từ tr.10–20 (các bước có trong ví dụ; chữ khôn
 **Ghi chú kỹ thuật**
 - Bản này đọc trên Linux: `pdftoppm -r 220` cho cả trang, `pdftoppm -r 300..400 -x -y -W -H` để cắt phóng to từng biểu đồ. Ảnh chỉ nằm trong thư mục tạm của phiên, không đưa vào repo.
 - Giá đọc từ nhãn trên hình là chính xác; giá đọc bằng cách dóng vào trục (có ghi "≈") có thể lệch vài pip hoặc vài chục cent vàng.
-- Bản trước được làm trên Windows (render bằng PowerShell). Khi đó agent đã ghi đè file `render_pdf.ps1` trong thư mục tạm dùng chung, có thể làm ảnh của báo cáo "Secret Of 411" bị lẫn; nên kiểm tra lại báo cáo đó nếu còn nghi.

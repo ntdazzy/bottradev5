@@ -1,7 +1,7 @@
-// BotFvgNhanChim: bot demo cho đúng một luật đã đo bằng PhanUngLab (SPEC §23): vàng XAUUSDm khung M5, vùng FVG + nến nhấn chìm
+// BotFvgNhanChim: bot demo cho đúng một luật đã đo bằng PhanUngLab: vàng XAUUSDm khung M5, vùng FVG + nến nhấn chìm
 // ở lần chạm đầu, theo tín hiệu, chốt lời 2R, 0,01 lot, nhiều lệnh cùng lúc (chặn lỗi ở 20 lệnh), giữ tối đa 500 nến.
-// Giữ giới hạn lỗ ngày/tuần/tổng (§11.2) và kiểm tra ký quỹ (§11.4); không có luật rủi ro 0,5% (§11.1), không lọc giờ/tin/chênh
-// lệch (§12.1). Luật đóng băng. Mặc định TẮT; chỉ chạy trên tài khoản demo. Vùng và tín hiệu dùng chung code với PhanUngLab.
+// Giữ giới hạn lỗ ngày/tuần/tổng và kiểm tra ký quỹ; không có luật rủi ro 0,5%, không lọc giờ/tin/chênh
+// lệch. Luật đóng băng. Mặc định TẮT; chỉ chạy trên tài khoản demo. Vùng và tín hiệu dùng chung code với PhanUngLab.
 #property copyright "BotVang"
 #property version   "1.00"
 #property description "Bot demo FVG + nến nhấn chìm, vàng M5, chốt lời 2R (SPEC §23). Mặc định TẮT, chỉ chạy trên tài khoản demo."
@@ -23,7 +23,7 @@ input double   InpTotalLoss = 15.0;           // Giới hạn lỗ tổng (% v�
 input double   InpMinFreeMarginPct = 50.0;    // Ký quỹ trống sau lệnh >= % Equity
 input double   InpMinMarginLevel = 500.0;     // Mức ký quỹ sau lệnh >= %
 
-// Luật đóng băng (SPEC §23.1), không phải cài đặt
+// Luật đóng băng, không phải cài đặt
 #define BOT_NAME    "BotFvgNhanChim"
 #define BOT_SYMBOL  "XAUUSDm"
 #define BOT_LOT     0.01
@@ -100,7 +100,7 @@ bool Stop(const string why)
    return false;
   }
 
-// SL (SPEC §22.3, như PhanUngLab): mua = đáy lớn gần nhất có giá ≤ mốc, trừ 0,1 ATR; không có thì mốc − 0,1 ATR. Bán ngược lại.
+// SL: mua = đáy lớn gần nhất có giá ≤ mốc, trừ 0,1 ATR; không có thì mốc − 0,1 ATR. Bán ngược lại.
 double WideSl(int dir, double base, double atr)
   {
    double p = dir > 0 ? g_big.NearestLow(base) : g_big.NearestHigh(base);
@@ -211,7 +211,7 @@ bool Ready(void)
    g_hard = g_st.Get(SK_HARD, 0) > 0.0;
    g_pauseUntil = (datetime)g_st.Get(SK_PAUSE, 0);
    g_pauseWhy = (int)g_st.Get(SK_PAUSE_WHY, 0);
-   // Cho chạy lại sau khi dừng hẳn (§11.2 "chỉ khi chủ bot bấm"): chủ bot đặt InpEnabled = false rồi bật lại true. Vốn gốc tính lại.
+   // Cho chạy lại sau khi dừng hẳn: chủ bot đặt InpEnabled = false rồi bật lại true. Vốn gốc tính lại.
    if(g_hard && InpEnabled && g_st.Get(SK_BOT_ON, 0) == 0.0)
      {
       g_hard = false;
@@ -236,7 +236,7 @@ bool Ready(void)
 
 bool Blocked(datetime now) { return g_hard || now < g_pauseUntil; }
 
-// Giới hạn lỗ §11.2 (gồm lệnh đang mở): tổng → dừng hẳn; ngày/tuần → nghỉ. Đang bị chặn thì đóng mọi lệnh của bot.
+// Giới hạn lỗ (gồm lệnh đang mở): tổng → dừng hẳn; ngày/tuần → nghỉ. Đang bị chặn thì đóng mọi lệnh của bot.
 void CheckMoney(datetime now)
   {
    g_money.Update(now);
@@ -362,7 +362,7 @@ void Note(const string text)
    g_log.Add("tin_hieu", text);
   }
 
-// Tín hiệu ở nến i vừa đóng (SPEC §23.1): vào lệnh thị trường ở tick t (tick đầu bot thấy sau nến nhấn chìm)
+// Tín hiệu ở nến i vừa đóng: vào lệnh thị trường ở tick t (tick đầu bot thấy sau nến nhấn chìm)
 void OnSignal(int mask, int i, const MqlTick &t)
   {
    g_signals++;

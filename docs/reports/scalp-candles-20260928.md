@@ -35,7 +35,7 @@ nguồn tải đó lấy từ các máy chủ MT4 được Exness quy định, k
 
 - Các nhánh độc lập: rút râu, nhấn chìm, phá rồi chạm lại cực trị nến; thêm 20/50/200 EMA trên M5/M15/H1.
   Không yêu cầu cả 9 đường hay cả 3 mẫu cùng thỏa.
-- Các mẫu cụ thể ở SPEC §26.3 và `scripts/research-scalp.mjs`; EMA gieo bằng trung bình N giá đóng đầu, sau đó cập nhật chuẩn 2/(N+1).
+- Các mẫu cụ thể ở `scripts/research-scalp.mjs` và `scripts/TOOLS.md`; EMA gieo bằng trung bình N giá đóng đầu, sau đó cập nhật chuẩn 2/(N+1).
 - EMA chỉ dùng nến khung lớn đã đóng trước lúc M1 mở; nhóm chưa đủ N nến không được tính.
   EMA được dựng từ nến M1 theo giờ nguồn, chưa đối chiếu từng điểm với nến khung lớn của broker.
 - Một nhịp chạm EMA liên tục chỉ được tính phản ứng đầu; phải có nến không chạm đường rồi mới nhận lần chạm tiếp.

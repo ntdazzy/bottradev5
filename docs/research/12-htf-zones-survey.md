@@ -1,10 +1,10 @@
 # Khảo sát cản khung lớn trong 51 chỉ báo TradingView đã tải (28/09/2026)
 
-Nguồn: `docs/pine/tradingview/`. Kết quả dùng để viết SPEC §25. Chỉ tóm tắt cách làm, không chép mã.
+Nguồn: `docs/pine/tradingview/`. Kết quả dùng để viết SPEC mục 23. Chỉ tóm tắt cách làm, không chép mã.
 
 ## 1. Hỗ trợ/kháng cự, mức quan trọng, pivot, fractal
 
-**Survey of S/R, key-level, pivot and fractal methods in the 51 downloaded scripts** (read-only; base path `C:\Users\NTD\Desktop\BotTradeEA\docs\pine\tradingview\`)
+**Survey of S/R, key-level, pivot and fractal methods in the 51 downloaded scripts** (read-only; base path `docs/pine/tradingview/`)
 
 The FVG/BPR, OB-lifecycle and candle-pattern scripts are left out of the table. They only matter here for how they request higher-timeframe data (Table B).
 
@@ -166,7 +166,7 @@ Paths are relative to `docs/pine/tradingview/`. S-numbers are from `docs/researc
 
 **Previous day/week high/low: how the scripts compute them, and a definition for Exness XAUUSDm**
 
-Paths below are relative to `C:\Users\NTD\Desktop\BotTradeEA\`. Scripts are under `docs\pine\tradingview\`.
+Paths below are relative to the repository root. Scripts are under `docs\pine\tradingview\`.
 
 | Source (file:lines) | Levels | Day/week boundary | How the data is read | Known from | Touch/break | Repaint / look-ahead |
 |---|---|---|---|---|---|---|
@@ -230,18 +230,18 @@ Paths below are relative to `C:\Users\NTD\Desktop\BotTradeEA\`. Scripts are unde
     - If session highs/lows are ever needed, use DST-aware windows (as TDH and ICT Concepts do) instead of the fixed server hours in SPEC §16.8 (line 451).
 
 Files:
-- `C:\Users\NTD\Desktop\BotTradeEA\docs\pine\tradingview\ob\Smart Money Concepts (SMC) [LuxAlgo] (order block part only).pine`
-- `C:\Users\NTD\Desktop\BotTradeEA\docs\pine\tradingview\fvg\ICT Concepts [LuxAlgo] (imbalance module FVG Implied FVG BPR Volume Imbalance).pine`
-- `C:\Users\NTD\Desktop\BotTradeEA\docs\pine\tradingview\msnr\MSnR Classic StoryLine MTF.pine`
-- `C:\Users\NTD\Desktop\BotTradeEA\docs\pine\tradingview\fvg\Inverse FVG with Rejections [TFO].pine`
-- `C:\Users\NTD\Desktop\BotTradeEA\mql5\Include\BotVang\Zones.mqh`
-- `C:\Users\NTD\Desktop\BotTradeEA\mql5\Include\BotVang\Signal.mqh`
-- `C:\Users\NTD\Desktop\BotTradeEA\mql5\Include\BotVang\Filters.mqh`
-- `C:\Users\NTD\Desktop\BotTradeEA\mql5\Experts\BotVang\PhanUngLab.mq5`
-- `C:\Users\NTD\Desktop\BotTradeEA\docs\SPEC.md`
-- `C:\Users\NTD\Desktop\BotTradeEA\docs\research\05-snr-fvg-ob-algorithms-exness-facts.md`
-- `C:\Users\NTD\Desktop\BotTradeEA\docs\research\10-tradingview-smc-msnr-ob-fvg.md`
-- `C:\Users\NTD\Desktop\BotTradeEA\docs\research\11-tradingdatahub-zones-review.md`
+- `docs\pine\tradingview\ob\Smart Money Concepts (SMC) [LuxAlgo] (order block part only).pine`
+- `docs\pine\tradingview\fvg\ICT Concepts [LuxAlgo] (imbalance module FVG Implied FVG BPR Volume Imbalance).pine`
+- `docs\pine\tradingview\msnr\MSnR Classic StoryLine MTF.pine`
+- `docs\pine\tradingview\fvg\Inverse FVG with Rejections [TFO].pine`
+- `mql5\Include\BotVang\Zones.mqh`
+- `mql5\Include\BotVang\Signal.mqh`
+- `mql5\Include\BotVang\Filters.mqh`
+- `mql5\Experts\BotVang\PhanUngLab.mq5`
+- `docs\SPEC.md`
+- `docs\research\05-snr-fvg-ob-algorithms-exness-facts.md`
+- `docs\research\10-tradingview-smc-msnr-ob-fvg.md`
+- `docs\research\11-tradingdatahub-zones-review.md`
 
 ## 4. Ghi chú triển khai (tiếng Anh, cho người viết code)
 
@@ -379,16 +379,16 @@ Use a class rather than a struct, because it holds class members. Do not create 
 - the overlap rule is our own, and MSNR is excluded from it.
 
 **Files**
-- C:\Users\NTD\Desktop\BotTradeEA\docs\SPEC.md
-- C:\Users\NTD\Desktop\BotTradeEA\mql5\Include\BotVang\SmcZones.mqh
-- C:\Users\NTD\Desktop\BotTradeEA\mql5\Include\BotVang\SmcDetect.mqh
-- C:\Users\NTD\Desktop\BotTradeEA\mql5\Experts\BotVang\PhanUngLab.mq5
-- C:\Users\NTD\Desktop\BotTradeEA\mql5\Include\BotVang\Zones.mqh
-- C:\Users\NTD\Desktop\BotTradeEA\docs\research\10-tradingview-smc-msnr-ob-fvg.md
-- C:\Users\NTD\Desktop\BotTradeEA\docs\research\05-snr-fvg-ob-algorithms-exness-facts.md
-- C:\Users\NTD\Desktop\BotTradeEA\docs\research\07-exness-execution-tester-slippage.md
-- C:\Users\NTD\Desktop\BotTradeEA\docs\pine\tradingview\fvg\Inverse FVG with Rejections [TFO].pine
-- C:\Users\NTD\Desktop\BotTradeEA\docs\pine\tradingview\msnr\MSnR Classic StoryLine MTF.pine
-- C:\Users\NTD\Desktop\BotTradeEA\docs\pine\tradingview\ob\Smart Money Concepts (SMC) [LuxAlgo] (order block part only).pine
-- C:\Users\NTD\Desktop\BotTradeEA\docs\pine\tradingview\smc\Multi Length Market Structure (BoS + ChoCh).pine
-- C:\Users\NTD\Desktop\BotTradeEA\docs\pine\tradingview\liquidity\Liquidity Swings [LuxAlgo].pine
+- docs\SPEC.md
+- mql5\Include\BotVang\SmcZones.mqh
+- mql5\Include\BotVang\SmcDetect.mqh
+- mql5\Experts\BotVang\PhanUngLab.mq5
+- mql5\Include\BotVang\Zones.mqh
+- docs\research\10-tradingview-smc-msnr-ob-fvg.md
+- docs\research\05-snr-fvg-ob-algorithms-exness-facts.md
+- docs\research\07-exness-execution-tester-slippage.md
+- docs\pine\tradingview\fvg\Inverse FVG with Rejections [TFO].pine
+- docs\pine\tradingview\msnr\MSnR Classic StoryLine MTF.pine
+- docs\pine\tradingview\ob\Smart Money Concepts (SMC) [LuxAlgo] (order block part only).pine
+- docs\pine\tradingview\smc\Multi Length Market Structure (BoS + ChoCh).pine
+- docs\pine\tradingview\liquidity\Liquidity Swings [LuxAlgo].pine

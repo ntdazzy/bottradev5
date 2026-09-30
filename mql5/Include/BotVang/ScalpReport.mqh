@@ -1,4 +1,4 @@
-// Sổ quyết định và tổng kết từ deal thật của máy thử (§26), không cộng lệnh ảo.
+// Sổ quyết định và tổng kết từ deal thật của máy thử, không cộng lệnh ảo.
 #ifndef BOTVANG_SCALPREPORT_MQH
 #define BOTVANG_SCALPREPORT_MQH
 

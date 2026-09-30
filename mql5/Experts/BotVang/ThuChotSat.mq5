@@ -1,4 +1,4 @@
-// ThuChotSat: đo lệnh chờ có chốt lời/dừng lỗ rất sát (SPEC §20). CHỈ ĐỂ ĐO trong Strategy Tester.
+// ThuChotSat: đo lệnh chờ có chốt lời/dừng lỗ rất sát. CHỈ ĐỂ ĐO trong Strategy Tester.
 // Mỗi phút, khi không còn lệnh nào: đặt 1 MUA chờ (limit) tại Ask − bước và 1 BÁN chờ (limit) tại Bid + bước, mỗi lệnh có
 // chốt lời/dừng lỗ tính từ giá đặt; lệnh chờ chưa khớp sau 60 giây thì gỡ. Đếm lệnh về chốt lời / dính dừng lỗ.
 #property copyright "BotVang"
@@ -107,7 +107,7 @@ void OnTick()
       RemoveOrders();
    if(pos > 0 || orders > 0 || t.time < g_nextPlace)
       return;
-   // MUA chờ dưới giá, BÁN chờ trên giá; chốt lời/dừng lỗ tính từ giá đặt (SPEC §20)
+   // MUA chờ dưới giá, BÁN chờ trên giá; chốt lời/dừng lỗ tính từ giá đặt
    double buy = t.ask - InpStep, sell = t.bid + InpStep;
    PlaceLimit(ORDER_TYPE_BUY_LIMIT, buy, buy + InpTp, buy - InpSl);
    PlaceLimit(ORDER_TYPE_SELL_LIMIT, sell, sell - InpTp, sell + InpSl);

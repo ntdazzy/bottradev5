@@ -1,4 +1,4 @@
-// BotVangLab: công cụ đo lợi thế điểm vào của BotVang bằng tick thật (SPEC §16, cách hiểu ở §16.8). KHÔNG đặt lệnh nào.
+// BotVangLab: công cụ đo lợi thế điểm vào của BotVang bằng tick thật. KHÔNG đặt lệnh nào.
 // Chạy trong Strategy Tester: "Every tick based on real ticks", XAUUSDm, khung M5.
 // Kết quả: Common\Files\BotVangLab\<tên>_<KHAMPHA|KIEMTRA>_s<hạt giống>_<mã băm>\ (su_kien.csv, loi_lo_tam.csv, tong_ket.html).
 #property copyright "BotVang"
@@ -33,7 +33,7 @@ input int      InpVnOffset = 7;                  // Giờ VN = giờ sàn + số
 input bool     InpSpecSummer = true;             // Lịch phiên trong terminal đang theo giờ hè Mỹ (ngày mùa đông dời 1 giờ)
 input group "Luật vùng"
 input ENUM_BIAS_MODE InpBiasMode = BIAS_H4_H1;   // Hướng lớn
-input bool     InpFlipNeedsAway = true;          // [GỐC] sau lật phải rời xa rồi mới tính chạm (đúng chữ §5.3); false = biến thể "chạm ngay"
+input bool     InpFlipNeedsAway = true;          // [GỐC] sau lật phải rời xa rồi mới tính chạm; false = biến thể "chạm ngay"
 input double   InpAwayAtr = 1.0;                 // Rời xa >= x × biến động khung vùng
 input int      InpMinTouchGapBars = 0;           // [Ứng viên] 2 lần chạm cách nhau >= số nến M5 (0 = tắt)
 input double   InpRetestAwayAtrM5 = 0.0;         // [Ứng viên] sau lật phải rời >= x × ATR(M5) (0 = tắt)
@@ -119,7 +119,7 @@ string ParamString()
                        InpNewsBefore, InpNewsAfter, InpFomcAfter);
   }
 
-// Tự kiểm tra công thức bằng các ví dụ đã biết đáp án (§16.8, không dùng Python)
+// Tự kiểm tra công thức bằng các ví dụ đã biết đáp án
 bool Check(bool cond, const string name, string &failed)
   {
    if(!cond)
@@ -171,7 +171,7 @@ bool ReadLocks()
       Print("[BotVangLab] CHƯA KHÓA ỨNG VIÊN NÀO: không mở phần 30%.");
       return false;
      }
-   // Đếm các tập luật khác nhau đã khóa cho đúng mã băm này (bỏ dòng trùng); tối đa 3 (§16.8)
+   // Đếm các tập luật khác nhau đã khóa cho đúng mã băm này (bỏ dòng trùng); tối đa 3
    int total = 0;
    while(!FileIsEnding(h))
      {
@@ -267,7 +267,7 @@ int RoundFlag(double lo, double hi, double atr)
    return MathCeil(a / 50.0) * 50.0 <= b ? 1 : 0;
   }
 
-// Số vùng thật khác còn sống có đường mức cách <= 0,3 × ATR(M15), tối đa 3 (hợp lưu đúng chữ §6.1)
+// Số vùng thật khác còn sống có đường mức cách <= 0,3 × ATR(M15), tối đa 3
 int ConfCount(const Zone &z, double atr15)
   {
    int c = 0;
@@ -466,7 +466,7 @@ void CollectFakes(const MqlRates &bar, const MqlTick &t, double spreadMed, bool 
      }
   }
 
-// Sự kiện đảo chiều: lệnh ảo vừa dính dừng lỗ → đo lệnh ngược chiều đặt đúng tại giá dừng lỗ (§10, §16.3)
+// Sự kiện đảo chiều: lệnh ảo vừa dính dừng lỗ → đo lệnh ngược chiều đặt đúng tại giá dừng lỗ
 void CreateReverse(int srcIdx, const MqlTick &t, bool newsWin)
   {
    LabEvent src = g_sim.ev[srcIdx];
@@ -649,7 +649,7 @@ int OnInit()
    g_mcfg.afterOpenMin = InpAfterOpenMin;
    g_mcfg.maxSpread = InpMaxSpread;
    g_mcfg.newsFilter = InpNewsFilter;
-   g_mcfg.newsRequired = false;         // tester: thiếu file lịch tin thì bỏ qua lọc tin (§12.2), có ghi rõ trong báo cáo
+   g_mcfg.newsRequired = false;         // tester: thiếu file lịch tin thì bỏ qua lọc tin, có ghi rõ trong báo cáo
    g_mcfg.specIsSummer = InpSpecSummer;
    g_params = ParamString();
    g_hash = Sha256(g_params);
@@ -659,7 +659,7 @@ int OnInit()
       return INIT_FAILED;
    g_half = InpHalfVn - InpVnOffset * 3600;
    g_cut = InpCutVn - InpVnOffset * 3600;
-   // §16.2: ghi thông số ký hiệu
+   // ghi thông số ký hiệu
    PrintFormat("[BotVangLab] %s: chữ số %d, point %.5f, bước giá %.5f, contract %.1f, lot nhỏ nhất %.2f, bước lot %.2f, "
                "Stops %d, Freeze %d, kiểu khớp %d, kiểu biểu đồ %d (0 = theo Bid)", _Symbol, _Digits, _Point,
                SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE), SymbolInfoDouble(_Symbol, SYMBOL_TRADE_CONTRACT_SIZE),
@@ -751,7 +751,7 @@ double OnTester()
   {
    uint t0 = GetTickCount();
    g_sim.Finish(g_tick);
-   double alpha = 0.05;   // §16.6: mức 95%; số ứng viên đã thử và đã khóa được ghi rõ trong báo cáo
+   double alpha = 0.05;   // mức 95%; số ứng viên đã thử và đã khóa được ghi rõ trong báo cáo
    g_rep.Init(InpCost, alpha, (ulong)InpSeed, InpPairDays);
    g_rep.Compute(g_sim.ev, g_sim.n);
    int explorations = CountExplorations();

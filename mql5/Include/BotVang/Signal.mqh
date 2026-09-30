@@ -1,4 +1,4 @@
-// Tín hiệu vào lệnh dùng chung cho BotVangLab và bot BotVang (SPEC §7.1, §8.1, §12.1, cách hiểu §16.8),
+// Tín hiệu vào lệnh dùng chung cho BotVangLab và bot BotVang,
 // để bot vào lệnh đúng như những gì Lab đã đo.
 #ifndef BOTVANG_SIGNAL_MQH
 #define BOTVANG_SIGNAL_MQH
@@ -7,7 +7,7 @@
 #include "Filters.mqh"
 
 #define SIG_FLIPPED 0     // chạm lần đầu vùng vừa lật (luật gốc)
-#define SIG_FRESH 1       // chạm lần đầu vùng còn mới chưa lật (tùy chọn §7.1)
+#define SIG_FRESH 1       // chạm lần đầu vùng còn mới chưa lật
 
 // Lý do bị lọc (tầng 2). Luật gốc = không có bit nào.
 #define FL_BIAS     1      // không cùng hướng lớn
@@ -28,7 +28,7 @@ struct SignalPick
    int               dup;    // số vùng khác cho cùng (loại, chiều) ở nến này
   };
 
-// Cài đặt bộ lọc thị trường (§12.1)
+// Cài đặt bộ lọc thị trường
 struct MarketCfg
   {
    bool              timeFilter;
@@ -39,7 +39,7 @@ struct MarketCfg
    int               afterOpenMin;
    double            maxSpread;
    bool              newsFilter;
-   bool              newsRequired;     // true: bật lọc tin mà không có lịch tin thì không vào (chạy thật); tester thiếu file thì bỏ qua lọc tin (§12.2)
+   bool              newsRequired;     // true: bật lọc tin mà không có lịch tin thì không vào (chạy thật); tester thiếu file thì bỏ qua lọc tin
    bool              specIsSummer;     // tester: lịch phiên trong terminal đang theo giờ hè Mỹ → ngày mùa đông dời lịch 1 giờ
   };
 
@@ -63,7 +63,7 @@ bool BetterZone(const Zone &a, const Zone &b)
    return a.created < b.created;
   }
 
-// §7.1 điều 3: nến chạm đóng qua mức và đúng màu
+// điều 3: nến chạm đóng qua mức và đúng màu
 bool SignalConfirmed(const Zone &z, int dir, const MqlRates &bar)
   {
    return dir > 0 ? bar.close > z.level && bar.close > bar.open : bar.close < z.level && bar.close < bar.open;
@@ -110,7 +110,7 @@ int PickSignals(const Zone &evz[], const int &evf[], int cnt, const MqlRates &ba
    return n;
   }
 
-// Bước B = max(x × ATR(M5) nến vừa đóng, y × chênh lệch lúc vào), làm tròn theo bước giá (§8.1)
+// Bước B = max(x × ATR(M5) nến vừa đóng, y × chênh lệch lúc vào), làm tròn theo bước giá
 double StepB(double atrM5, double spread, double atrMult, double spreadMult, double tickSize, int digits, bool &bySpread)
   {
    double a = atrMult * atrM5, s = spreadMult * spread;
@@ -118,14 +118,14 @@ double StepB(double atrM5, double spread, double atrMult, double spreadMult, dou
    return NormalizeDouble(MathRound(MathMax(a, s) / tickSize) * tickSize, digits);
   }
 
-// §7.1 điều 4: khoảng lời thực tới mép gần của cản mạnh đối diện (đo bằng Bid, trừ chênh lệch) còn >= minRoomB × B
+// điều 4: khoảng lời thực tới mép gần của cản mạnh đối diện (đo bằng Bid, trừ chênh lệch) còn >= minRoomB × B
 bool RoomOk(CZones &zones, int dir, double bid, double spread, double B, int strongScore, double minRoomB)
   {
    double dist;
    return zones.NearestStrong(dir, bid, strongScore, dist) < 0 || dist - spread >= minRoomB * B;
   }
 
-// Lý do bị lọc theo thị trường tại thời điểm at (§12.1)
+// Lý do bị lọc theo thị trường tại thời điểm at
 int MarketFlags(const MarketCfg &c, const string sym, datetime at, double spread, bool newsAvailable, bool newsWin)
   {
    int f = 0;

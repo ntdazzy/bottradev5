@@ -1,4 +1,4 @@
-// Đo kết quả của từng sự kiện trên tick thật (SPEC §16.4, §16.8), không đặt lệnh:
+// Đo kết quả của từng sự kiện trên tick thật, không đặt lệnh:
 // (1) chạm +kB trước hay −1B trước (k = 1, 2, 3) trong 36 nến M5, kèm lời/lỗ tạm lớn nhất theo từng nến;
 // (2) lệnh ảo chạy đúng cách quản lý của bot: dừng lỗ 1 bước, thang bậc, khóa lời tại cản, siết trước tin, đóng theo giờ.
 #ifndef BOTVANG_LABSIM_MQH
@@ -26,9 +26,9 @@
 #define EXIT_UNFINISHED 6  // hết dữ liệu khi chưa đóng
 
 // Loại sự kiện
-#define EV_FLIPPED SIG_FLIPPED   // chạm lần đầu vùng vừa lật (luật gốc §7.1)
-#define EV_FRESH SIG_FRESH       // chạm lần đầu vùng còn mới chưa lật (tùy chọn §7.1)
-#define EV_REVERSE 2       // đảo chiều tại dừng lỗ của lệnh ảo (§10)
+#define EV_FLIPPED SIG_FLIPPED   // chạm lần đầu vùng vừa lật
+#define EV_FRESH SIG_FRESH       // chạm lần đầu vùng còn mới chưa lật
+#define EV_REVERSE 2       // đảo chiều tại dừng lỗ của lệnh ảo
 
 // Cờ ứng viên (không thuộc luật gốc; dùng để đo tập con của luật gốc)
 #define CF_BSPREAD  1      // B do sàn chênh lệch quyết định
@@ -39,7 +39,7 @@
 #define CF_BIAS_H1  32     // không cùng hướng H1 (khi chỉ dùng H1)
 #define CF_BIAS_H4  64     // không cùng hướng H4 (khi chỉ dùng H4)
 
-// Điều kiện đảo chiều §10 "Có điều kiện" (bit = không đạt)
+// Điều kiện đảo chiều "Có điều kiện" (bit = không đạt)
 #define RF_SL_IN_STRONG 1  // giá dừng lỗ nằm trong cản mạnh
 #define RF_INSIDE6      2  // nằm trong dải cản quá 6 nến
 #define RF_AGAINST      4  // chiều mới ngược hướng lớn và không vừa phá/bị đẩy lại tại vùng mạnh

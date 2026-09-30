@@ -5,7 +5,6 @@
 
 #include "ScpTypes.mqh"
 #include "ScpSeries.mqh"
-#include "ScpScenario.mqh"
 
 struct ScpSymbolSpec
   {
@@ -93,8 +92,7 @@ private:
       double ref = 0.0;
       double probe = MathMax(1.0, MathAbs(entry) * 0.00001);
       if(!m_money.Profit(dir, volume, entry, entry + dir * probe, ref) || ref <= 0) return false;
-      if(ref > 0)
-         slip = MathAbs(ref / probe) * m_money.SlippagePerLeg() * 2.0;
+      slip = MathAbs(ref / probe) * m_money.SlippagePerLeg() * 2.0;
       net = p - fees - slip;
       return true;
      }
@@ -151,9 +149,6 @@ public:
       m_min_rr = min_rr;
       m_partial_at=partial_at; m_be_at=be_at; m_be_r=be_r;
      }
-
-   double            MinStopAtr() { return m_min_stop_atr; }
-   double            FarAtr() { return m_far_atr; }
 
    // Lập kế hoạch từ đề nghị. Trả về true nếu đủ điều kiện gửi (chưa gửi).
    bool              Build(const ScpProposal &p, const ScpQuote &q, const ScpSymbolSpec &sp,

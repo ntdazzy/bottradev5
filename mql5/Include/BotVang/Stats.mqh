@@ -1,4 +1,4 @@
-// Tiền của bot (SPEC §11): mốc Equity đầu ngày/tuần (lưu trong State), lời/lỗ ngày/tuần/tổng, giới hạn lỗ,
+// Tiền của bot: mốc Equity đầu ngày/tuần (lưu trong State), lời/lỗ ngày/tuần/tổng, giới hạn lỗ,
 // rủi ro mỗi lệnh (OrderCalcProfit), ngân sách lỗ ngày, ký quỹ; thắng/thua hôm nay theo lịch sử deal của bot.
 #ifndef BOTVANG_STATS_MQH
 #define BOTVANG_STATS_MQH
@@ -99,7 +99,7 @@ public:
    double            DayLimit(const BotSettings &s) const { return Limit(s.dayLoss, dayEq, s.limitUnit); }
    double            WeekLimit(const BotSettings &s) const { return Limit(s.weekLoss, weekEq, s.limitUnit); }
    double            TotalLimit(const BotSettings &s) const { return Limit(s.totalLoss, capital, s.limitUnit); }
-   double            DayUsed(void) const { return MathMax(0.0, dayEq - equity); }   // §11.3: đã gồm lệnh đang mở
+   double            DayUsed(void) const { return MathMax(0.0, dayEq - equity); }   // đã gồm lệnh đang mở
 
    // Nạp/rút tiền không phải lời/lỗ: dời các mốc Equity ngày/tuần và vốn gốc đúng bằng số tiền nạp (+) hoặc rút (−)
    void              OnBalance(double amount)
@@ -126,7 +126,7 @@ public:
       return 0;
      }
 
-   // Rủi ro của một lệnh mới (§11.1): lỗ nếu chạm dừng lỗ + đệm trượt giá (khoảng giá đổi ra tiền); không hoa hồng trên Standard/Cent
+   // Rủi ro của một lệnh mới: lỗ nếu chạm dừng lỗ + đệm trượt giá (khoảng giá đổi ra tiền); không hoa hồng trên Standard/Cent
    double            TradeRisk(int dir, double lot, double entry, double sl, double slipBuffer) const
      {
       ENUM_ORDER_TYPE t = dir > 0 ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
@@ -145,7 +145,7 @@ public:
       return MathMax(0.0, -p);
      }
 
-   // §11.4: ký quỹ trống sau lệnh >= x% Equity và mức ký quỹ sau lệnh >= y%
+   // ký quỹ trống sau lệnh >= x% Equity và mức ký quỹ sau lệnh >= y%
    bool              MarginOk(int dir, double lot, double price, const BotSettings &s, string &why) const
      {
       double need = 0.0;

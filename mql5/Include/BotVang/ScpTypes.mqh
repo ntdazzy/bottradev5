@@ -1,4 +1,4 @@
-// ScpTypes.mqh — kiểu dữ liệu, hằng số và hàm dùng chung cho bot SCP-MTF-1.0.
+// ScpTypes.mqh — kiểu dữ liệu, hằng số và hàm dùng chung cho bot SCP-MTF-1.3.
 // Nguồn luật: docs/SPEC.md mục 4, 5.3, 6.2, 9.4, 14.8.
 // Không đọc dữ liệu, không gửi lệnh: file này chỉ định nghĩa kiểu và hàm thuần.
 #ifndef SCP_TYPES_MQH
@@ -404,16 +404,6 @@ bool ScpEntryStop(int dir,double entry,double exit_price,double current_sl,doubl
 bool ScpCanStart(ENUM_SCP_EXEC_STATE state)
   {
    return state == SCP_EX_IDLE || state == SCP_EX_CLOSED || state == SCP_EX_REJECTED;
-  }
-
-// Dấu của một số; 0 giữ nguyên 0.
-int ScpSign(double v)
-  {
-   if(v > 0.0)
-      return 1;
-   if(v < 0.0)
-      return -1;
-   return 0;
   }
 
 // Làm tròn giá theo bước giá. SL làm tròn ra xa giá vào, TP làm tròn về phía chốt sớm hơn.

@@ -244,7 +244,6 @@ public:
          for(int tries=0;tries<50;tries++)
            {
             d=1+(int)MathFloor(Rand01()*10.0);
-            if(d>10) d=10;
             if(!used[d-1]) break;
            }
          used[d-1]=true;

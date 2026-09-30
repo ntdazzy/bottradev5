@@ -1,4 +1,4 @@
-// BotLuoi: bot lưới thử nghiệm giống bot trong video nhưng an toàn hơn (SPEC §19). CHỈ ĐỂ ĐO trong Strategy Tester/demo.
+// BotLuoi: bot lưới thử nghiệm giống bot trong video nhưng an toàn hơn. CHỈ ĐỂ ĐO trong Strategy Tester/demo.
 // Thang lệnh chờ hai phía, lot cố định, 10 lệnh mỗi phía, không dừng lỗ từng lệnh; đóng cả rổ khi lời 1 bước, khi khớp đủ
 // hai phía, khi chạm giới hạn lỗ, hoặc hết giờ chạy (00:00 VN thứ Bảy). Ghi từng rổ và bảng tổng kết vào Common\Files\BotLuoi.
 #property copyright "BotVang"
@@ -93,7 +93,7 @@ string ReasonText(int r)
    return "?";
   }
 
-// Giờ chạy: từ 00:00 VN thứ Hai tới 00:00 VN thứ Bảy (SPEC §19)
+// Giờ chạy: từ 00:00 VN thứ Hai tới 00:00 VN thứ Bảy
 bool InWindow(datetime server)
   {
    MqlDateTime v;
@@ -133,7 +133,7 @@ void UpdateMoney(datetime now, double eq)
      {
       g_dayKey = dk;
       g_dayEq = eq;
-      // lần chạy phụ: sang ngày VN mới sau khi dừng hẳn thì coi như chủ bot bấm cho chạy lại (vốn gốc tính lại, §11.2)
+      // lần chạy phụ: sang ngày VN mới sau khi dừng hẳn thì coi như chủ bot bấm cho chạy lại
       if(g_hardStop && InpRestartAfterStop)
         {
          g_hardStop = false;
@@ -159,7 +159,7 @@ void UpdateMoney(datetime now, double eq)
      }
   }
 
-// Giới hạn lỗ §11.2: 3 = tổng (dừng hẳn), 2 = tuần, 1 = ngày, 0 = chưa
+// Giới hạn lỗ: 3 = tổng (dừng hẳn), 2 = tuần, 1 = ngày, 0 = chưa
 int LimitHit(double eq)
   {
    if(g_capital - eq >= InpTotalLoss / 100.0 * g_capital)
@@ -465,7 +465,7 @@ void Summary()
    for(int i = 0; i < ArraySize(g_months); i++)
       months += StringFormat(" %d/%02d %s;", g_months[i] % 100, g_months[i] / 100 % 100, Money(g_monthPnl[i]));
    lines[n++] = months;
-   // Kiểm tra 1 (SPEC §19): tổng các rổ = Equity thay đổi; phần lệch là tiền ngoài rổ (lệnh khớp muộn đóng giữa hai rổ)
+   // Kiểm tra 1: tổng các rổ = Equity thay đổi; phần lệch là tiền ngoài rổ (lệnh khớp muộn đóng giữa hai rổ)
    double outside = g_outside + (g_open || g_closing ? 0.0 : eq - g_lastFinishBal);
    lines[n++] = StringFormat("Kiểm tra 1: tổng các rổ %s, Equity thay đổi %s -> %s%s", Money(g_sumBaskets), Money(change),
                              Check(g_sumBaskets, change), MathAbs(outside) >= 0.05 ? " (tiền ngoài rổ " + Money(outside) + ")" : "");

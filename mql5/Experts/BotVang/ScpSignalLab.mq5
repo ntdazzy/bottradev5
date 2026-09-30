@@ -68,7 +68,6 @@ bool PushRate(int tf, const MqlRates &r, datetime known)
    ScpBar b;
    b.open_time=r.time;
    b.close_time=r.time+(datetime)PeriodSeconds(SIG_PERIODS[tf]);
-   if(tf==SIG_W1) b.close_time=r.time+7*86400;
    b.o=r.open; b.h=r.high; b.l=r.low; b.c=r.close;
    b.tick_volume=r.tick_volume;
    b.known_at=MathMax(known,b.close_time);
@@ -280,7 +279,7 @@ void OpenSignalsFile()
 
 void WriteResults()
   {
-   string head="Công cụ đo tín hiệu HTF-ZONE — "+SCP_SPEC_VERSION+" + SPEC 22–23 (đợt 1: K1, K2, K5)\r\n"+
+   string head="Công cụ đo tín hiệu HTF-ZONE — "+SCP_SPEC_VERSION+" + SPEC 22–24\r\n"+
                "Lượt: "+InpRunName+" | "+_Symbol+" | seed="+(string)InpSeed+" | trượt/chặng="+DoubleToString(InpSlipPerLeg,2)+
                " | theo dõi tối đa="+(string)InpMaxHoldMin+" phút | né tin -"+(string)InpNewsBeforeMin+"/+"+(string)InpNewsAfterMin+
                " phút | lịch tin: "+(g_news_n>0?(string)g_news_n+" sự kiện":"THIẾU")+

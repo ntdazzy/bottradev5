@@ -1,4 +1,4 @@
-// Bộ máy của bot BotVang (SPEC §7–§14): vào lệnh theo tín hiệu đã đo ở Lab, chạy lệnh (thang bậc, khóa lời tại cản,
+// Bộ máy của bot BotVang: vào lệnh theo tín hiệu đã đo ở Lab, chạy lệnh (thang bậc, khóa lời tại cản,
 // siết trước tin), đảo chiều (mặc định tắt), đóng theo giờ, giới hạn lỗ, đo trượt giá, phanh, khôi phục sau khởi động lại.
 #ifndef BOTVANG_ENGINE_MQH
 #define BOTVANG_ENGINE_MQH
@@ -98,7 +98,7 @@ private:
       m_oppHi = j >= 0 ? zones.zones[j].hi : 0.0;
      }
 
-   // Đọc lệnh và lệnh chờ của bot trên sàn; xử lý lệnh thừa (§14.1)
+   // Đọc lệnh và lệnh chờ của bot trên sàn; xử lý lệnh thừa
    void              Sync(const MqlTick &t)
      {
       ulong pos[], ord[];
@@ -238,7 +238,7 @@ private:
       m_log.Add("khoi_phuc", why + ": khóa an toàn, chờ bạn xác nhận trên bảng");
      }
 
-   // Kiểm tra giới hạn lỗ/lời (§11.2). Giới hạn đang áp mà còn lệnh (ví dụ sau khởi động lại) thì đóng tiếp.
+   // Kiểm tra giới hạn lỗ/lời. Giới hạn đang áp mà còn lệnh (ví dụ sau khởi động lại) thì đóng tiếp.
    void              CheckLimits(datetime now)
      {
       bool active = hardStop || (now < pauseUntil && LimitPause(pauseWhy));
@@ -267,7 +267,7 @@ private:
       StartClosing(PauseText(why));
      }
 
-   // Tới giờ đóng (§12.3): hết khung giờ chạy, <= 30 phút tới giờ nghỉ của sàn, hoặc sàn đang nghỉ
+   // Tới giờ đóng: hết khung giờ chạy, <= 30 phút tới giờ nghỉ của sàn, hoặc sàn đang nghỉ
    bool              MustCloseByTime(datetime now)
      {
       if(timeOn && !InTimeWindow(now, mc.vnOffset, mc.startMin, mc.endMin))
@@ -333,7 +333,7 @@ private:
       return true;
      }
 
-   // Lý do không được vào lệnh mới / đặt lệnh đảo ở cấp bot (§12.1). Rỗng = được.
+   // Lý do không được vào lệnh mới / đặt lệnh đảo ở cấp bot. Rỗng = được.
    string            BotBlock(datetime now)
      {
       if(blockedWhy != "")
@@ -433,7 +433,7 @@ private:
             m_log.Add("bo_qua", "Có tín hiệu nhưng " + why);
             continue;
            }
-         // Lưu ý định trước khi gửi (§13.2): giá mong muốn, dừng lỗ, B, vùng; để OnTradeTransaction và khởi động lại dùng
+         // Lưu ý định trước khi gửi: giá mong muốn, dừng lỗ, B, vùng; để OnTradeTransaction và khởi động lại dùng
          st.Set(SK_POS_B, B);
          st.Set(SK_POS_DIR, dir);
          st.Set(SK_POS_ZONE, picks[i].z.id);
@@ -493,7 +493,7 @@ private:
                SendSl(sl);
          return;
         }
-      // Sau khi khớp: đặt lại dừng lỗ tính từ giá khớp thật, vẫn 1 bước; không đặt được thì đóng ngay (§13.3)
+      // Sau khi khớp: đặt lại dừng lỗ tính từ giá khớp thật, vẫn 1 bước; không đặt được thì đóng ngay
       if(m_needSlReset)
         {
          double sl = ex.Norm(posOpen - posDir * posB);
@@ -517,7 +517,7 @@ private:
       atZone = false;
       if(newsWin)
         {
-         // §12.2: siết một lần khi vào cửa sổ tin (nếu đang lời thì dừng lỗ về hòa vốn); trong cửa sổ không dời gì thêm.
+         // siết một lần khi vào cửa sổ tin (nếu đang lời thì dừng lỗ về hòa vốn); trong cửa sổ không dời gì thêm.
          // Chỉ đánh dấu "đã siết" khi đã gửi được hoặc không cần siết; bận thì thử lại tick sau.
          if(!m_newsTightened)
            {
@@ -535,7 +535,7 @@ private:
          return;
         }
       m_newsTightened = false;
-      // §8.2 thang bậc
+      // thang bậc
       int steps = (int)MathFloor((px - posOpen) * posDir / posB + 1e-9);
       if(steps >= 1)
         {
@@ -543,7 +543,7 @@ private:
          if((v - target) * posDir > 0.0)
             target = v;
         }
-      // §9 khóa lời tại cản: khoảng cách theo Bid tới mép gần < 1B → dừng lỗ cách giá 0,5B
+      // khóa lời tại cản: khoảng cách theo Bid tới mép gần < 1B → dừng lỗ cách giá 0,5B
       if(m_oppEdge > 0.0)
         {
          double dist = posDir > 0 ? m_oppEdge - t.bid : t.bid - m_oppEdge;
@@ -560,7 +560,7 @@ private:
          SendSl(target);
      }
 
-   // §10 đảo chiều có điều kiện: đặt sẵn lệnh chờ ngược chiều đúng tại giá dừng lỗ; không đúng điều kiện thì gỡ
+   // đảo chiều có điều kiện: đặt sẵn lệnh chờ ngược chiều đúng tại giá dừng lỗ; không đúng điều kiện thì gỡ
    void              ManageFlip(const MqlTick &t)
      {
       if(flipMode == FLIP_OFF || !hasPos || posSl <= 0.0)
@@ -643,7 +643,7 @@ private:
       bool slLoss = (posSl - posOpen) * posDir < s.slipBuffer;
       if(slLoss && consLosses + 1 >= s.brakeLosses)
          return "sắp chạm phanh thua liên tiếp";
-      // §11.1, §11.3: rủi ro lệnh đảo và ngân sách lỗ ngày
+      // rủi ro lệnh đảo và ngân sách lỗ ngày
       double price = posSl;
       double B = StepNow(t);
       double risk = money.TradeRisk(nd, posVol, price, price - nd * B, s.slipBuffer);
@@ -700,7 +700,7 @@ private:
         }
      }
 
-   // §14.3: đối chiếu dữ liệu lưu với lệnh thật (chỉ khi terminal đã kết nối sàn)
+   // đối chiếu dữ liệu lưu với lệnh thật (chỉ khi terminal đã kết nối sàn)
    void              Reconcile(void)
      {
       if(!ex.HedgingOk())
@@ -812,7 +812,7 @@ public:
    datetime          pauseUntil;
    int               pauseWhy;
    int               consLosses;
-   // trượt giá hôm nay (§13.2)
+   // trượt giá hôm nay
    double            slipSum;
    int               slipCount;
    double            slipWorst;
@@ -996,7 +996,7 @@ public:
                     }
      }
 
-   // OnTradeTransaction: nạp/rút tiền, ghi nhận lệnh mới, đo trượt giá, đếm thua liên tiếp, phanh (§10, §11.2, §13.2, §13.3)
+   // OnTradeTransaction: nạp/rút tiền, ghi nhận lệnh mới, đo trượt giá, đếm thua liên tiếp, phanh
    void              OnDeal(ulong deal)
      {
       if(!HistoryDealSelect(deal))
@@ -1103,7 +1103,7 @@ public:
       st.Flush();
      }
 
-   // AdverseSlippage (§13.2): luôn dương = bất lợi. Deal MUA: khớp − mong muốn; deal BÁN: mong muốn − khớp.
+   // AdverseSlippage: luôn dương = bất lợi. Deal MUA: khớp − mong muốn; deal BÁN: mong muốn − khớp.
    double            Slip(int dealDir, double fill, double want, double B, double vol, const MqlTick &t, const string what)
      {
       double adv = dealDir > 0 ? fill - want : want - fill;
@@ -1193,7 +1193,7 @@ public:
       return recovery && ex.Positions(pos) == 1 && PositionSelectByTicket(pos[0]) && PositionGetDouble(POSITION_SL) <= 0.0;
      }
 
-   // Kiểm tra giờ cả ở OnTimer (lúc 24:00 có thể không có tick) — §12.3
+   // Kiểm tra giờ cả ở OnTimer (lúc 24:00 có thể không có tick)
    void              OnTimer(void)
      {
       if(!m_reconciled)

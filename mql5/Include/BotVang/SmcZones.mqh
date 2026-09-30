@@ -1,8 +1,8 @@
-// Vùng giá của PhanUngLab (SPEC §22.1) trên nến đã đóng của khung vào lệnh: FVG, OB (cả 2 lớp cấu trúc), SNR (đỉnh/đáy pivot 5/5),
+// Vùng giá của PhanUngLab trên nến đã đóng của khung vào lệnh: FVG, OB (cả 2 lớp cấu trúc), SNR (đỉnh/đáy pivot 5/5),
 // MSNR (mức A/V, đóng qua thì lật vai trò), EMA 20/50/200 (lần chạm sau 5 nến nằm hẳn một phía). Ghi lần chạm đầu (nến k0), xét nến
-// phản ứng R1–R3 (SPEC §22.2) ở k0 và k0+1, và hình dạng mẫu nến không cần vùng cho nhóm X1 (SPEC §22.4). Chỉ tìm và ghi sổ,
+// phản ứng R1–R3 ở k0 và k0+1, và hình dạng mẫu nến không cần vùng cho nhóm X1. Chỉ tìm và ghi sổ,
 // không vào lệnh. Mỗi vùng dùng được từ nến sau lúc xuất hiện thật (không nhìn trước).
-// Có tagger (PhanUngLab khi bật cản khung lớn, SPEC §25.5) thì lần chạm đầu được gắn nhãn trùng và giữ vùng đại diện của mỗi ô đã phản ứng;
+// Có tagger thì lần chạm đầu được gắn nhãn trùng và giữ vùng đại diện của mỗi ô đã phản ứng;
 // không có tagger (mặc định, BotFvgNhanChim) thì hành vi như cũ.
 #ifndef BOTVANG_SMCZONES_MQH
 #define BOTVANG_SMCZONES_MQH
@@ -26,7 +26,7 @@
 #define ZEMA_COUNT 3
 #define ZEMA_FRESH 5   // số nến trước phải nằm hẳn một phía EMA
 
-// Nhãn "trùng vùng khung lớn" (SPEC §25.5) gắn lúc chạm đầu; chỉ PhanUngLab bật (qua tagger), bot khác để nguyên −1
+// Nhãn "trùng vùng khung lớn" gắn lúc chạm đầu; chỉ PhanUngLab bật (qua tagger), bot khác để nguyên −1
 struct SmcTag
   {
    int               ovl;         // 1 trùng vùng khung lớn H, 0 không, −1 chưa xét

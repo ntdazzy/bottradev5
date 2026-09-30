@@ -142,4 +142,4 @@ mà chưa đặt lệnh trên sàn, rồi chỉ gửi lệnh khi lần chạm m�
   `diagnose_summary.json`, `diagnose_inputs.csv`, `diagnose_ticks_final.csv`.
 - `scripts/diagnose-scalp.mjs` ghép kế hoạch/khớp/dời dừng và lập đầu vào; thiếu hoặc không duy nhất thì dừng.
 - `mql5/Scripts/BotVang/ScalpDiagnose.mq5` chỉ đọc lịch sử và tính đối chứng, không có lệnh giao dịch.
-- Cách chạy và giả định đầy đủ: `scripts/TOOLS.md`, SPEC §26.4–26.5.
+- Cách chạy và giả định đầy đủ: `scripts/TOOLS.md`.

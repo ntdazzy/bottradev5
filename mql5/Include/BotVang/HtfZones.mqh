@@ -1,4 +1,4 @@
-// Cản khung lớn cho PhanUngLab (SPEC §25): trên nến đã đóng của M15, H1, H4, D1 tìm FVG, OB (lớp nội bộ), SNR (phần râu nến pivot),
+// Cản khung lớn cho PhanUngLab: trên nến đã đóng của M15, H1, H4, D1 tìm FVG, OB (lớp nội bộ), SNR (phần râu nến pivot),
 // MSNR (nến khung đóng qua thì lật vai), và đỉnh/đáy ngày trước (PDH/PDL), tuần trước (PWH/PWL). Nến khung lớn chỉ dùng khi
 // giờ mở + độ dài khung ≤ giờ mở nến khung vào lệnh; nến D1 Chủ nhật/Thứ Bảy gộp vào ngày giao dịch kế tiếp. Vùng dùng được từ nến
 // khung vào lệnh đầu tiên mở ≥ lúc biết, và chỉ nhận chạm sau khi có nến mở đúng phía (25.1). Hỏng, lật, hết tuổi xét bằng nến của

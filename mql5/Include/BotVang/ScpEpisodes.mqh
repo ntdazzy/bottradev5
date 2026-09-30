@@ -134,14 +134,6 @@ public:
       return -1;
      }
 
-   void              Write(int i, const ScpEpisode &ep) { m_ep[i] = ep; }
-
-   void              Close(int i, ENUM_SCP_EPISODE_STATE st)
-     {
-      m_ep[i].state = st;
-      m_ep[i].last_event_at = m_ep[i].last_event_at;
-     }
-
    // Phía tiếp cận hợp lệ: hỗ trợ phải đi từ trên xuống, kháng cự từ dưới lên (SPEC 14.3).
    bool              ValidApproach(const ScpZone &z, int side)
      {
@@ -427,37 +419,6 @@ public:
            }
      }
 
-   bool              BreakById(long id, ScpBreakEvent &out)
-     {
-      for(int i = 0; i < m_break_count; i++)
-         if(m_br[i].id == id)
-           {
-            out = m_br[i];
-            return true;
-           }
-      return false;
-     }
-
-   void              MarkP4(long break_id)
-     {
-      for(int i = 0; i < m_break_count; i++)
-         if(m_br[i].id == break_id)
-           {
-            m_br[i].is_p4 = true;
-            return;
-           }
-     }
-
-   void              MarkFailed(long break_id)
-     {
-      for(int i = 0; i < m_break_count; i++)
-         if(m_br[i].id == break_id)
-           {
-            m_br[i].failed = true;
-            return;
-           }
-     }
-
    void              SetRole(long zone_id, ENUM_SCP_TF tf, int dir)
      {
       int wi=WatchIndex(zone_id,tf);
@@ -466,35 +427,6 @@ public:
 
    int               BreakCount() { return m_break_count; }
    ScpBreakEvent     BreakAt(int i) { return m_br[i]; }
-
-   // Sự kiện phá gần nhất của một vùng trên một khung; trả chỉ số hoặc -1.
-   int               LastBreak(long zone_id, ENUM_SCP_TF tf)
-     {
-      int best = -1;
-      long best_time = 0;
-      for(int i = 0; i < m_break_count; i++)
-        {
-         if(m_br[i].zone_id != zone_id || m_br[i].break_tf != tf)
-            continue;
-         if(m_br[i].known_at >= best_time)
-           {
-            best_time = m_br[i].known_at;
-            best = i;
-           }
-        }
-      return best;
-     }
-
-   bool              ByIdBreak(long id, ScpBreakEvent &out)
-     {
-      for(int i = 0; i < m_break_count; i++)
-         if(m_br[i].id == id)
-           {
-            out = m_br[i];
-            return true;
-           }
-      return false;
-     }
 
    // Một sự kiện xác nhận chỉ được dùng một lần (SPEC 6.3).
    void              ConsumeReaction(int index, datetime known_at, ENUM_SCP_REACTION kind)

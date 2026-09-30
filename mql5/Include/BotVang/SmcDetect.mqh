@@ -1,4 +1,4 @@
-// Tìm các đối tượng SMC trên nến đã đóng (SPEC §21.2): ATR Wilder, đỉnh/đáy pivot N/N, BOS/CHoCH (2 lớp), OB, FVG,
+// Tìm các đối tượng SMC trên nến đã đóng: ATR Wilder, đỉnh/đáy pivot N/N, BOS/CHoCH (2 lớp), OB, FVG,
 // mức thanh khoản và cú quét. Mọi đối tượng chỉ dùng được từ sau lúc đóng nến xác nhận nó (không nhìn trước).
 #ifndef BOTVANG_SMCDETECT_MQH
 #define BOTVANG_SMCDETECT_MQH
@@ -65,7 +65,7 @@ struct SmcBreak
    double            obLo, obHi;
   };
 
-// Cấu trúc một lớp (SPEC §21.2): pivot N/N, zigzag (đỉnh cùng loại liền nhau giữ cái cực trị hơn), phá bằng giá đóng
+// Cấu trúc một lớp: pivot N/N, zigzag (đỉnh cùng loại liền nhau giữ cái cực trị hơn), phá bằng giá đóng
 class CSmcStructure
   {
 private:
@@ -250,7 +250,7 @@ struct SmcFvg
    bool              dead;
   };
 
-// FVG (SPEC §21.2): khoảng trống > 0,25 ATR, nến giữa đóng vượt, không có nến nhảy giá; hỏng khi đóng qua mép xa; hết hạn 500 nến
+// FVG: khoảng trống > 0,25 ATR, nến giữa đóng vượt, không có nến nhảy giá; hỏng khi đóng qua mép xa; hết hạn 500 nến
 class CSmcFvgs
   {
 public:
@@ -340,7 +340,7 @@ struct SmcSweep
    int               i;
   };
 
-// Thanh khoản (SPEC §21.2): đỉnh/đáy pivot 5/5; quét = râu vượt mức chưa phá, chưa quét, đóng quay lại; đóng vượt mức thì mức hết
+// Thanh khoản: đỉnh/đáy pivot 5/5; quét = râu vượt mức chưa phá, chưa quét, đóng quay lại; đóng vượt mức thì mức hết
 class CSmcLiquidity
   {
 private:

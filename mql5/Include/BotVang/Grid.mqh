@@ -1,4 +1,4 @@
-// Thang lệnh chờ hai phía của BotLuoi (SPEC §19): rải thang, đếm lệnh của rổ, đóng cả rổ.
+// Thang lệnh chờ hai phía của BotLuoi: rải thang, đếm lệnh của rổ, đóng cả rổ.
 // Chỉ đụng lệnh đúng Magic + Symbol. Lot cố định, không dừng lỗ, không chốt lời từng lệnh.
 #ifndef BOTVANG_GRID_MQH
 #define BOTVANG_GRID_MQH
@@ -262,7 +262,7 @@ public:
       return ok;
      }
 
-   // Tiền lời của 1 bước giá với 1 lệnh (ngưỡng đóng rổ, SPEC §19)
+   // Tiền lời của 1 bước giá với 1 lệnh
    double            StepMoney(double price)
      {
       double m = 0.0;

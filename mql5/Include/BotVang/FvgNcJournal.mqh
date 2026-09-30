@@ -1,4 +1,4 @@
-// Nhật ký từng lệnh của BotFvgNhanChim (SPEC §23.3): mỗi lệnh đã đóng một dòng CSV (dấu ;) trong Common\Files\BotFvgNhanChim\.
+// Nhật ký từng lệnh của BotFvgNhanChim: mỗi lệnh đã đóng một dòng CSV (dấu ;) trong Common\Files\BotFvgNhanChim\.
 // File đang bị chương trình khác khóa (ví dụ đang mở bằng Excel) thì giữ dòng lại và ghi ở lần sau.
 #ifndef BOTVANG_FVGNCJOURNAL_MQH
 #define BOTVANG_FVGNCJOURNAL_MQH

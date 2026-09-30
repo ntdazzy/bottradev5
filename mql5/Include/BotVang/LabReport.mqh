@@ -1,4 +1,4 @@
-// Tổng kết của BotVangLab (SPEC §16.3, §16.5–16.8): ghép cặp sự kiện giả, bảng cân bằng, kết quả theo tập luật
+// Tổng kết của BotVangLab: ghép cặp sự kiện giả, bảng cân bằng, kết quả theo tập luật
 // và theo nhóm, kiểm tra cách ghép (giả so với giả), chuỗi lệnh của bot, kết luận; ghi CSV và HTML.
 #ifndef BOTVANG_LABREPORT_MQH
 #define BOTVANG_LABREPORT_MQH
@@ -135,7 +135,7 @@ private:
 
    void              SortFakes(const LabEvent &all[], int n)
      {
-      // Sự kiện giả trùng nến và cùng chiều với một sự kiện thật đi chung đường giá với nó: loại khỏi kho (§16.3)
+      // Sự kiện giả trùng nến và cùng chiều với một sự kiện thật đi chung đường giá với nó: loại khỏi kho
       long realKeys[];
       int nk = 0;
       for(int i = 0; i < n; i++)
@@ -178,7 +178,7 @@ private:
 
    static bool       Near(double a, double b) { return b > 0.0 && MathAbs(a / b - 1.0) <= 0.25; }
 
-   // Ghép tối đa 5 sự kiện giả cho sự kiện r (§16.3): đã đo xong trước lúc chạm thật, trong 5 ngày giao dịch
+   // Ghép tối đa 5 sự kiện giả cho sự kiện r: đã đo xong trước lúc chạm thật, trong 5 ngày giao dịch
    // (≈ 7 ngày lịch; vùng H1/H4/ngày: 14 ngày), cùng khung, chiều, phiên, quan hệ hướng lớn, cùng tập luật, cùng phần 70/30,
    // biến động và chênh lệch lúc chạm trong ±25%. Lấy các sự kiện gần nhất.
    int               Pair(const LabEvent &r, int set, const LabEvent &all[], bool relaxBias, int excludeParent, int &out[])
@@ -382,7 +382,7 @@ public:
       return row;
      }
 
-   // Tiêu chí 3 (§16.6/§16.8): cả 70a và 70b đều có thật − giả (p₁) > 0 và R sau chi phí (mọi sự kiện) > 0
+   // Tiêu chí 3: cả 70a và 70b đều có thật − giả (p₁) > 0 và R sau chi phí (mọi sự kiện) > 0
    bool              Crit3(int s)
      {
       for(int p = 0; p <= 1; p++)
@@ -391,7 +391,7 @@ public:
       return true;
      }
 
-   // Kết luận cho một tập luật theo thứ tự §16.8/T18
+   // Kết luận cho một tập luật theo thứ tự
    string            Verdict(int s, bool holdoutOpen, bool locked)
      {
       if(placeboBad[s])
@@ -417,7 +417,7 @@ public:
       return c1 && c2 ? "GIỮ, đề nghị bật" : "BỎ: đo đủ nhưng không thấy lợi thế rõ:" + why;
      }
 
-   // Bảng cân bằng (§16.3): sự kiện thật có đối chứng so với các sự kiện giả đã ghép (mỗi sự kiện giả nặng 1/m).
+   // Bảng cân bằng: sự kiện thật có đối chứng so với các sự kiện giả đã ghép (mỗi sự kiện giả nặng 1/m).
    void              Balance(int s, int part, const LabEvent &all[], int n)
      {
       // 0–2 phiên, 3–5 hướng lớn (cùng/ngược/không rõ), 6–9 khung
@@ -496,7 +496,7 @@ public:
         }
      }
 
-   // Nhóm để xem (§16.4) — không dùng để giữ luật
+   // Nhóm để xem — không dùng để giữ luật
    static int        GroupOf(const LabEvent &e, int g)
      {
       switch(g)

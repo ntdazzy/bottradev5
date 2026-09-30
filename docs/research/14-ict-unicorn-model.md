@@ -7,7 +7,7 @@ Tôi đã đọc hết 7 trang. Công cụ Read không mở được file vì m�
   Biểu đồ **không có trục giá, không có trục thời gian, không có tên mã**, nên tôi chỉ tính được **tỷ lệ** (ví dụ số R), không tính được giá thật.
   Trên ảnh, px nhỏ hơn nghĩa là giá cao hơn. Tỷ lệ R chỉ đúng nếu trục giá là thang tuyến tính (mặc định của TradingView). Tôi coi đó là giả định.
 
-Tôi chỉ tạo file này, không sửa file nào khác. Các thuật ngữ FVG/OB/breaker dùng cùng nghĩa với `docs/research/10-tradingview-smc-msnr-ob-fvg.md` (mục 1.2, 1.3, 2.2, 2.3).
+Các thuật ngữ FVG/OB/breaker dùng cùng nghĩa với `docs/research/10-tradingview-smc-msnr-ob-fvg.md` (mục 1.2, 1.3, 2.2, 2.3).
 
 Ký hiệu dùng trong báo cáo:
 - c1, c2, c3 là các nến liền kề nhau theo thứ tự thời gian.

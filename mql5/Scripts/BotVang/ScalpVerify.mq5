@@ -1,4 +1,4 @@
-// Kiểm tra các quy tắc thuần §26 bằng MQL5 trong MT5, không gửi lệnh.
+// Kiểm tra các quy tắc thuần bằng MQL5 trong MT5, không gửi lệnh.
 #property script_show_inputs
 #include <BotVang/ScalpSignal.mqh>
 

@@ -1,5 +1,5 @@
 // Kiểm chứng độc lập kết quả của BotVangLab bằng dữ liệu thật trên terminal (không dùng code đo của Lab):
-// với mỗi sự kiện thật trong su_kien.csv: (1) soát nến chạm theo §5.4 và §7.1 điều 3; (2) lấy tick thật bằng
+// với mỗi sự kiện thật trong su_kien.csv: (1) soát nến chạm theo điều 3; (2) lấy tick thật bằng
 // CopyTicksRange và tính lại chạm +kB trước hay −1B trước (k = 1, 2, 3) trong 36 nến. In số khớp / lệch.
 input string InpRun = "";               // Thư mục lần chạy trong Common\Files\BotVangLab
 input int    InpMax = 400;              // Số sự kiện tối đa cần soát
