@@ -52,7 +52,7 @@ K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo tr�
   phá cấu trúc 1 mức +15, nến phá ≥ 1,5 ATR +19, H1 +5. Vùng tinh chỉnh bị phá nhiều hơn (H4→M15 81%, D1→H1 94%: vùng hẹp,
   nến M5 dễ đóng qua mép xa). Lệnh 1R (dừng +0,3 ATR, xa tin): K1 −0,14R, K2 −0,19R, K5 −0,15R; K2b 24 lệnh, K3 4 lệnh — quá ít.
 - Nghiên cứu trên nến ngoài bot (29–30/09): tài liệu `docs/research/16`–`18` và bộ đo `scripts/research/` **đã xóa theo yêu cầu chủ bot 30/09**;
-  cần thì lấy lại từ lịch sử Git (commit `326a9bb`). Kết luận chính, đo trên nến/tick Dukascopy và tick Exness XAUUSDm thật, luôn so với vào ngẫu nhiên và cản giả:
+  bản cũ còn trong lịch sử Git (commit `326a9bb`). Kết luận dưới đây từ các lượt đo 29–30/09 chạy trong phiên Claude, **mã và số liệu chi tiết không lưu vào Git**, chỉ là ghi chú để tham khảo:
   - Chưa có cách scalp vàng nào có lời sau chênh 0,24: cản theo tài liệu, swing/SBR/FVG, nến xác nhận, limit, DCA, hedge 2 đầu, chốt 1–5 giá
     đều quanh hòa trước phí, âm sau phí; cản thật ≈ cản giả.
   - Chỉ luật theo xu hướng H4 (phá đỉnh/đáy 20 nến H4, cùng chiều EMA200 D1, dừng 2 ATR, kéo dừng 3 ATR) qua kiểm 2020–06/2026 trên vàng:

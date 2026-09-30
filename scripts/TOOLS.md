@@ -69,7 +69,7 @@ node scripts/tai-tick-exness.mjs --ma XAUUSDm --tu 2023-01 --den 2026-06   # tic
 - Dukascopy hay giới hạn tần suất (lỗi 429): script báo `loi_tai`, không ghi file thiếu và thoát mã 2; chạy lại sau vài phút để tải tiếp.
   Ngày tick thiếu giờ nào trong 00–20h UTC thì báo `canh_bao_thieu_gio`.
 - Kho Exness chỉ có mã thường (`XAUUSDm`, `XAUUSD`…), không có `XAUUSD247m`; chênh giá trong kho có thể đã làm tròn, không phải chênh thật của tài khoản.
-- Khoảng thời gian (đo 29/09): nến M1 10 năm ~1 giờ, tick Dukascopy 16 tháng ~20 phút, tick Exness 3,5 năm ~30 phút; tổng dữ liệu ~4 GB.
+- Thời gian tải ước tính: nến M1 10 năm ~1–2 giờ, tick Dukascopy 16 tháng ~2 giờ (tải chậm để tránh 429), tick Exness 3,5 năm ~30 phút; tổng ~4 GB.
 
 ## Điều tra lệnh — `diagnose-scalp.mjs` và `ScalpDiagnose.mq5`
 
