@@ -1,11 +1,15 @@
 # SPEC mới — Bot scalping theo kịch bản và phản ứng giá
 
-Phiên bản tài liệu: `SCP-MTF-1.3-review-fixes` · Ngày: 28/09/2026.
+Phiên bản tài liệu: `SCP-MTF-1.3-review-fixes` · Ngày: 28/09/2026. Hướng mới HTF-ZONE 2.0 ở mục 23 (29/09; đã có công cụ đo `ScpSignalLab`, chưa có EA).
 
 Bản 1.3 (chủ bot duyệt 28/09 sau review): S01 nhận nhịp hồi thuận hướng lớn; kế hoạch bị loại không khóa cả lần chạm;
 thoát do mốc vô hiệu cần nến M1 đóng qua mốc; bảo vệ giá vào ở max(2,5 giá, 1R); siết theo cấu trúc sau 1R;
 vùng M1 chưa có phản ứng không làm cản mục tiêu; chỉ OB M1 và vùng M5 trở lên mở lần theo dõi vào lệnh.
 Các giá trị số vẫn là [THỬ NGHIỆM], có công tắc để đo trước/sau.
+
+**Hướng 1.4 (chủ bot chốt 29/09, chưa vào bot):** cản tìm ở khung lớn M15–W1, M1/M5 chỉ để tìm điểm vào,
+vào thị trường sau phản ứng, né tin, khối lượng theo độ lớn cản trong trần 0,25%, chốt hai phần.
+Trước khi đổi bot phải đo bằng công cụ đo tín hiệu. Chi tiết mục 22.
 
 **Trạng thái: BẢN THIẾT KẾ ĐỂ CHỦ BOT REVIEW. Chưa phải mô tả mã đã hoàn thành.**
 
@@ -1091,3 +1095,226 @@ Nếu ý người dùng thay đổi thì sửa SPEC có lý do trước khi sử
 
 Các nguồn trên hỗ trợ khái niệm/cơ chế kỹ thuật, **không chứng minh các ngưỡng hoặc các nhánh của bot này có lợi nhuận**.
 Có thể lập trình các trạng thái, điều kiện và hành động này. Kết quả kinh tế và mức khớp với cách nhìn của chủ bot cần được review và kiểm chứng riêng.
+
+## 22. Hướng 1.4 — cản khung lớn, vào ở M1/M5 (chủ bot chốt 29/09/2026)
+
+**Trạng thái:** quyết định hướng; **chưa triển khai trong `BotScpMtf`**. Bot 1.3 giữ nguyên cho tới khi có số đo.
+Nghiên cứu nền: `docs/research/13-entry-sl-tp-research.md`. Mọi số dưới đây là [THỬ NGHIỆM] nếu không ghi khác.
+
+### 22.1 Quyết định của chủ bot [YÊU CẦU, chốt 29/09]
+
+1. Cản tìm ở khung lớn: M15, M30, H1, H4, D1, W1, gồm vùng đỉnh/đáy, OB, FVG. M1/M5 chỉ dùng để tìm điểm vào.
+2. Chỉ vào ở cản mạnh. Ngoại lệ "cản tạm": khi giá đang đi mạnh và chỉ hồi nông, được vào ở cản nhỏ M5 theo chiều đi mạnh.
+3. Vào lệnh thị trường sau phản ứng; không treo lệnh chờ tại FVG/OB (giữ mục 1.2 và 9.3).
+4. Phản ứng đủ để vào: giá chạm cản → không có nến M5 đóng vượt mép xa của cản (không phá trong một nhịp)
+   → trên M1 hoặc M5 có **một trong**: rút râu (P1), nhấn chìm (P2), phá đỉnh/đáy nhỏ của nhịp đi vào (P3).
+5. Né tin.
+6. Khối lượng theo độ lớn cản, **không vượt 0,25% vốn mỗi lệnh**: M15/M30 0,10%; H1 0,15%; H4 0,20%;
+   D1/W1 hoặc nhiều cản trùng nhau 0,25%. Các mức % là [THỬ NGHIỆM].
+7. Chốt hai phần: phần đầu ở đích gần, phần còn lại tới cản khung lớn kế tiếp; chốt phần đầu xong thì dời dừng về giá vào.
+   Mức đích gần chọn bằng số đo trên 01–06/2026 (1R, 1,5R hoặc cản M5 gần nhất), khóa trước khi kiểm 07–09/2026.
+8. Làm công cụ đo tín hiệu trước khi đổi cách vào của bot. Dữ liệu tìm luật 01–06/2026, dữ liệu kiểm 07–09/2026.
+
+### 22.2 Định nghĩa đo [ĐỀ XUẤT, THỬ NGHIỆM]
+
+- Loại cản: vùng đỉnh/đáy, OB, FVG (hình học mục 14.3) của M15, M30, H1, H4, D1, W1; đỉnh/đáy ngày trước (dùng trong ngày kế tiếp);
+  đỉnh/đáy tuần trước (dùng trong tuần kế tiếp); số tròn $10/$50/$100. Cản khung nguồn hết hiệu lực khi nến của chính khung đó
+  đóng vượt mép xa thêm `eps_geom` của khung đó, hoặc quá 200 nến nguồn.
+- Cản tạm M5: vùng đỉnh/đáy M5, chỉ xét khi hướng cấu trúc M5 cùng chiều lệnh và nhịp hồi hiện tại không quá 50% nhịp đẩy trước
+  (từ pivot ngược gần nhất tới cực trị cuối).
+- Bậc cản: M5 tạm, M15, M30, số tròn $10 → 0,10%; H1, số tròn $50, đỉnh/đáy ngày trước → 0,15%; H4, số tròn $100,
+  đỉnh/đáy tuần trước → 0,20%; D1, W1 hoặc ≥2 cản khác khung/loại trùng nhau tại lúc chạm → 0,25%.
+  Cách xếp số tròn và mốc ngày/tuần vào bậc là đề xuất của Claude, cần chủ bot duyệt.
+- Chạm: Bid đi vào `[bottom−eps, top+eps]` từ phía hợp lệ; `eps=max(2 tick, 0,10·ATR14 khung vào)`. Tiếp cận từ trên là hỗ trợ (mua),
+  từ dưới là kháng cự (bán). Mở lại lần chạm mới cần một nến khung vào đã đóng hoàn toàn ngoài dải.
+- Phá trong một nhịp: sau chạm, có nến M5 đóng vượt mép xa thêm `eps` → hủy lần chạm.
+- Phản ứng: trong tối đa 3 nến khung vào kể từ nến chạm. P1/P2 dùng công thức mục 14.4 nhưng **không bắt đóng vượt mép gần**
+  (cản khung lớn có thể rộng); ghi riêng cờ "đạt cả điều kiện đóng vượt mép gần" để so. P3: đóng vượt đỉnh/đáy nhỏ khung vào đã khóa
+  lúc chạm (20 nến trước chạm) thêm `eps`.
+- Vào: giá thị trường ở báo giá đầu tiên sau nến phản ứng đóng, trong 2 giây; bỏ nếu Bid đã chạy quá 0,25·ATR khung vào.
+- Dừng: ngoài cực trị lần chạm cộng `max(eps, spread)`; lệnh bán cộng thêm spread (mục 14.6). Không nới để giảm tỷ lệ chi phí;
+  tín hiệu có (spread + 2·trượt)/R > 5% được đánh dấu để đo riêng.
+- Đích khung lớn: mép gần của cản bậc M15 trở lên phía trước, trừ đệm. Đích gần: 1R, 1,5R, cản M5 gần nhất; đo song song.
+
+### 22.3 Công cụ đo tín hiệu (`ScpSignalLab.mq5`) — hợp đồng
+
+- Chỉ chạy trong máy thử; không có hàm gửi lệnh. Mỗi tín hiệu và đối chứng được theo dõi trên từng tick thật tối đa 24 giờ.
+- Kết quả theo R sau spread (mua thoát Bid, bán thoát Ask), thêm cột trừ đệm trượt đã khai báo:
+  đua dừng/chốt ở 1R, 1,5R, 2R, 3R, tới đích khung lớn; chốt hai phần (đích gần + đích khung lớn, dừng về giá vào sau phần đầu);
+  quãng đi thuận/ngược lớn nhất sau 1, 5, 15, 60, 240 phút.
+- Đối chứng: đánh ngược cùng lúc; vào ngẫu nhiên cùng giờ trong ngày 1–10 ngày sau (3 lần); cản giả cùng khung/loại/bề rộng
+  đặt lệch ngẫu nhiên 1–3 lần max(bề rộng, ATR khung nguồn), đi qua đúng cùng quy trình. Hạt giống ngẫu nhiên là tham số, ghi vào báo cáo.
+- Báo cáo: tỷ lệ thắng, R trung bình, khoảng tin cậy 95%, hiệu thật − đối chứng, theo khung cản, loại cản, bậc, kiểu phản ứng,
+  khung vào, giờ, gần/xa tin, chi phí cao/thấp. Tín hiệu gần tin được ghi nhưng loại khỏi số chính.
+- Kết quả là số đo tín hiệu trên giấy, chồng lấn nhau, không phải tiền của một EA chạy một lệnh mỗi lúc.
+
+### 22.4 Mốc râu, Doji SnR và DOL (chủ bot bổ sung 29/09, kèm ảnh GOLD H1)
+
+- **[ĐỀ XUẤT của chủ bot, cần đo — chưa chốt]** Cản đỉnh/đáy (khung M15, M30, H1, H4…) chưa từng bị phá: mốc chạm là **đỉnh râu** (kháng cự) hoặc **đáy râu** (hỗ trợ)
+  của nến tạo đỉnh/đáy. Lần kiểm tra thứ 2 trở đi: mốc là **giữa râu** hoặc đỉnh/đáy râu — chủ bot chưa chắc cách nào tốt,
+  yêu cầu **đo cả hai**. Giữa râu = (mép thân + đỉnh/đáy râu)/2 của nến tạo cản. "Bị phá" = nến của chính khung nguồn đóng vượt
+  đỉnh/đáy râu thêm `eps_geom` (râu xuyên không tính là phá, theo `docs/research/01-rare-snr.md` mục 2.6).
+- **[YÊU CẦU]** Vẫn chờ phản ứng M1/M5 rồi vào thị trường. **[ĐỀ XUẤT của chủ bot, cần đo]** Dừng lỗ sau đỉnh/đáy râu của cản: mua `min(đáy râu, cực trị đã thấy) − đệm`,
+  bán `max(đỉnh râu, cực trị đã thấy) + đệm + spread`.
+- **[ĐỀ XUẤT, chủ bot giao Claude tra cứu]** Doji SnR theo "Rare SnR" (`docs/research/01-rare-snr.md` mục 2.4), khớp ảnh chủ bot:
+  nến động lực c1 → 1–2 nến doji/thân nhỏ → nến động lực c3 cùng chiều đóng vượt qua cụm doji. Giảm: mốc kháng cự = giá mở c3
+  (≈ thân doji ≈ đóng c1); tăng: mốc hỗ trợ đối xứng. Vùng cản = [mốc, đỉnh râu cao nhất của cụm doji] (giảm), đối xứng khi tăng;
+  dừng lỗ sau râu đó. Ngưỡng [THỬ NGHIỆM] vì tài liệu không cho số: doji/thân nhỏ = thân ≤ 0,3·ATR14 và ≤ 50% biên độ nến;
+  nến động lực = thân ≥ 0,6·ATR14 cùng chiều. Xét trên M15, M30, H1, H4, D1, W1.
+- **[ĐỀ XUẤT từ ảnh]** DOL (đích thanh khoản): đỉnh/đáy râu gần nhất phía trước của cản đỉnh/đáy M15 trở lên **chưa bị giá quét qua**
+  (chưa có giá đi vượt râu đó từ lúc tạo). Đo như một đích phần sau của chốt hai phần, song song với "cản khung lớn kế tiếp".
+
+## 23. HTF-ZONE 2.0 — bot mới theo 4 tài liệu cản (chủ bot chốt hướng 29/09/2026)
+
+**Trạng thái:** thiết kế đã duyệt hướng; **đã có công cụ đo `ScpSignalLab`, chưa có EA**. Nguồn: `docs/research/01`, `02`, `03`, `14`, `15`.
+Mục này thay phần chọn cản/điểm vào của bot 1.3 (mục 5–8) khi được triển khai; phần an toàn, gửi lệnh, khôi phục (mục 9.5, 11–12, 14.8–14.10)
+giữ nguyên. Mọi số là [THỬ NGHIỆM] trừ khi ghi khác. Chỗ tài liệu không có luật được ghi "cần đo".
+
+### 23.1 Quyết định chủ bot [YÊU CẦU, chốt 29/09]
+
+- Kịch bản: K1 đảo chiều ở cản mới; K2 phá rồi quay lại cản đã đổi vai; K3 Unicorn; K4 đường xu hướng chạm lần 3; K5 tiếp diễn (411).
+- **Chỉ vào lệnh thị trường sau phản ứng M1/M5**; không lệnh chờ (giữ mục 1.2, 9.3). Tài liệu dùng lệnh chờ tại mức — không áp dụng.
+- Cản tìm ở M15, M30, H1, H4, D1, W1; M1/M5 chỉ để vào lệnh (mục 22.1).
+- Trình tự: SPEC → công cụ đo → chủ bot chạy máy thử 01–06/2026 → chốt tối đa 3 tổ hợp → kiểm một lần 07–09/2026 → EA chỉ bật tổ hợp đạt.
+
+### 23.2 Loại cản (khung nguồn M15–W1; pivot N theo mục 13, M30 như M15, W1 như D1)
+
+| Mã | Loại | Định nghĩa | Vùng [dưới, trên] | Nguồn |
+|---|---|---|---|---|
+| L1 | Đỉnh/đáy râu | Pivot xác nhận | Kháng cự `[max(O,C), H]`, hỗ trợ `[L, min(O,C)]` | Mục 14.3, ảnh chủ bot |
+| L2 | Classic A/V | A: c1 tăng, c2 giảm; V: c1 giảm, c2 tăng; mức `C(c1)`. **Đề xuất lọc**: chỉ khi c1 hoặc c2 là nến pivot (tài liệu nhận mọi cặp → quá nhiều mức) | A: `[C(c1), max(H(c1),H(c2))]`; V: `[min(L(c1),L(c2)), C(c1)]` | Rare SnR R2–R3, 7.2h |
+| L3 | Gap SnR | c1, c2 cùng màu; mức `C(c1)`. **Đề xuất lọc**: ít nhất một nến thân ≥ 0,6·ATR | Giảm `[L(c1), H(c2)]`; tăng `[L(c2), H(c1)]` | Rare SnR R4–R7 |
+| L4 | Doji SnR | Mục 22.4 | Mục 22.4 | Rare SnR R9–R11 |
+| L5 | Vùng Z (411) | Mô hình M/W: A, đỉnh 1, B (`B>A` khi bán), đỉnh 2; Z = nến đầu tiên từ đỉnh 2 có `L(Z)<L(Z−1)`; có hiệu lực khi giá phá B rồi A | `[L(Z), H(Z)]` (cả râu) | 411 phần 1 mục 3–4 |
+| L6 | OB, FVG, breaker | Mục 14.3; breaker xem K3 | — | Mục 14.3, Unicorn |
+| T | Đích | DOL (mục 22.4), đỉnh/đáy ngày-tuần trước, số tròn, cản mới đối diện | — | Mục 22 |
+
+- **Mốc chạm** (L1, L4): thân / giữa râu / đầu râu — đo cả ba (mục 22.4). L2, L3, L5, L6: mép gần của vùng.
+- **Trạng thái cản**: mới (chưa chạm) → đã chạm n lần → **bị phá** → **đổi vai** (mới ở phía kia) → hết hạn (200 nến nguồn).
+  "Bị phá" đo hai định nghĩa: (a) **thân nến khung nguồn đóng qua mép xa** (Rare SnR); (b) **râu vượt mép xa** (411). Mặc định dùng (a); (b) để so.
+  **[ĐỀ XUẤT, sửa 29/09 sau lượt máy thử đầu]** Mỗi cản gốc khung M15 trở lên chỉ đổi vai **một lần**; bản đổi vai giữ tuổi của cản gốc
+  (hết hạn cùng lúc). Cản tạm M5 không đổi vai. Lý do: giá dao động qua lại quanh một cản làm nó đổi vai mãi và không bao giờ hết hạn
+  (một tuần đo có 143.572 lần "bị phá" với ~4.500 cản thật).
+- Cản được biết lúc nến xác nhận cuối đóng; không dùng trước lúc đó.
+
+### 23.3 Kịch bản
+
+**K1 — Đảo chiều ở cản mới.** Cản L1–L4, L6 chưa bị phá; giá tiếp cận từ phía đúng vai; đo lần chạm 1, 2, 3+ riêng.
+Không có nến M5 đóng qua mép xa (không phá trong một nhịp) → phản ứng M1/M5 → vào thị trường.
+
+**K2 — Phá rồi quay lại.** (a) Cản L1–L4 bị phá theo 23.2 và đổi vai; (b) vùng Z của 411 sau khi phá B rồi A.
+Chỉ lần quay lại **đầu tiên** sau khi phá (fresh). Phản ứng M1/M5 theo vai mới → vào thị trường.
+
+**K3 — Unicorn.** Trên M5 và M15 (tài liệu dùng 5 phút):
+1. DOL = hai đỉnh (hoặc hai đáy) pivot chênh ≤ `tol` (cần đo; thử 0,1·ATR) chưa bị quét; DOL ở trên → chỉ mua, ở dưới → chỉ bán.
+2. Nhịp thao túng: giá đi ngược DOL, quét một đáy pivot cũ (mua) / đỉnh pivot cũ (bán).
+3. Breaker: nhóm nến xanh cuối trước đáy mới (mua), đỏ cuối trước đỉnh mới (bán); vùng `[L, H]` cả râu. Xác nhận khi nến đóng qua mép xa breaker.
+4. FVG trong nhịp đẩy sau quét; vùng Unicorn = giao breaker ∩ FVG; không giao thì không có setup.
+5. Giá quay lại chạm mép gần vùng → phản ứng M1 → vào thị trường. Dừng lỗ: đo (a) thân nến thấp/cao nhất nhịp thao túng (tài liệu), (b) đầu râu nhịp thao túng.
+   Đích: DOL; bỏ nếu < 2R (tài liệu). Hết hạn: cần đo (thử 24 nến khung nguồn).
+
+**K4 — Đường xu hướng chạm lần 3 (411 phần 2).** Điểm neo = giá đóng: kháng cự ở nến tăng có nến sau giảm; hỗ trợ ở nến giảm có nến sau tăng,
+tại pivot giá đóng của khung nguồn. Đường qua 2 neo cùng loại gần nhất theo chỉ số nến: `L(t)=P1+(P2−P1)(t−t1)/(t2−t1)`.
+Lần chạm thứ 3 (tính cả 2 neo) khi giá tới đường ± `tol` (cần đo) → phản ứng M1/M5 → vào thị trường. Chỉ kiểu cơ bản trước;
+các kiểu 1/2/3/QM/666 và Boom Point để sau khi có số đo. Đường hết hiệu lực khi thân nến khung nguồn đóng qua đường.
+
+**K5 — Tiếp diễn (411 tr.10).** Sau một K2 đã phát theo chiều d: giá tạo cực trị mới C, hồi, tạo cực trị D, rồi phá D và C.
+LEVEL 2 = C. Lần quay lại đầu tới LEVEL 2 → phản ứng M1/M5 → vào thị trường theo chiều d.
+
+### 23.4 Vào lệnh, dừng lỗ, chốt lời, khối lượng
+
+- Vào: phản ứng P1/P2/P3 trên M1 hoặc M5 (mục 22.2), thị trường trong 2 giây, bỏ nếu đã chạy > 0,25·ATR khung vào.
+- Dừng lỗ: sau mép xa vùng (đầu râu, UL/LL, đỉnh hộp doji, cực trị đã thấy) + đệm {0; 0,3; 0,5}·ATR M5 + spread với lệnh bán. Đo cả ba.
+- Chốt lời hai phần (mục 22.1 mục 7): phần đầu {1R; 1,5R; cản M5}; phần sau {DOL; cản mới đối diện khung lớn; 5R (Rare SnR tr.13)};
+  sau phần đầu dời dừng về giá vào. Bỏ lệnh khi đích gần hơn 1R sau chi phí.
+  Đích "cản khung lớn": mép gần của cản M15 trở lên đầu tiên cách giá vào ≥ 1R sau đệm; cản gần hơn (kể cả cản chồng lên vùng vào)
+  bỏ qua, lấy cản kế tiếp (chủ bot đồng ý 29/09 sau lượt 1 tuần: cản gần nhất phía trước chỉ cách trung vị 0,03R, 0,6% lệnh có đích ≥ 1R).
+  Đích DOL cùng luật: đỉnh/đáy râu chưa bị quét đầu tiên cách giá vào ≥ 1R (chủ bot đồng ý 29/09; DOL gần nhất trung vị 0,41R, 28% lệnh ≥ 1R).
+- Khối lượng theo bậc cản trong trần 0,25% (mục 22.2). Né tin ±5 phút (đo thêm ±30). Mặc định chỉ quan sát; tiền thật bị chặn.
+
+### 23.5 Đo và nghiệm thu
+
+- Công cụ đo `ScpSignalLab` (mục 22.3) đo K1–K5 × mốc × dừng lỗ × chốt lời, so với vào ngẫu nhiên cùng giờ, đánh ngược và cản giả.
+- Làm theo đợt: đợt 1 = sổ cản L1–L4, L6, DOL + K1, K2(a), K5; đợt 2 = L5 + K2(b), K3; đợt 3 = K4.
+- Một tổ hợp chỉ được đưa vào EA khi trên 01–06/2026: R trung bình sau chi phí > 0 và hơn cả vào ngẫu nhiên lẫn cản giả,
+  khoảng tin cậy 95% không chứa 0; rồi kiểm một lần trên 07–09/2026 vẫn > 0. Không chỉnh luật sau khi xem 07–09.
+
+### 23.6 Đợt 2 đã có trong công cụ đo (29/09)
+
+- **L5/K2b vùng Z (411):** khung nguồn M15–D1. Khi một đỉnh (bán) / đáy (mua) vừa xác nhận là đỉnh 2 / đáy 2: lấy B = đáy (đỉnh) cuối trước nó,
+  đỉnh 1 = đỉnh (đáy) cuối trước B, A = đáy (đỉnh) cuối trước đỉnh 1; bán cần `B > A`, mua cần `B < A`.
+  Z = nến đầu tiên từ nến trước đỉnh 2 có `L < L` nến trước (mua: `H > H` nến trước); vùng `[L(Z), H(Z)]`, vai kháng cự (mua: hỗ trợ).
+  Vùng chỉ dùng được sau khi giá phá B rồi A (râu cũng tính), tính từ lúc nến phá A đóng; thân nến đóng qua mép xa trước đó thì vùng hủy.
+  Hết tuổi 200 nến, không đổi vai. Chưa lọc HSL, chưa bắt mẫu nhấn chìm (cần đo).
+- **K3 Unicorn:** khung nguồn M5 và M15. Đáy (mua) / đỉnh (bán) X vừa xác nhận thấp hơn đáy (cao hơn đỉnh) liền trước = nhánh thao túng;
+  G = đỉnh (đáy) ngay trước X; breaker = nến tăng (mua) / giảm (bán) cuối cùng từ G tới X, vùng `[L, H]`.
+  Cần DOL: hai đỉnh (mua) / đáy (bán) chênh ≤ 0,1·ATR nguồn, phía trước giá, chưa bị giá vượt, trong 200 nến; lấy nhóm gần nhất.
+  Trong 24 nến nguồn: có nến đóng qua mép xa breaker và có FVG 3 nến (nến giữa cùng chiều) từ X trở đi chồng lên breaker.
+  Vùng Unicorn = hợp breaker ∪ FVG; biết lúc nến sau cùng trong hai điều kiện đóng; hết tuổi 24 nến, không đổi vai.
+  Dừng lỗ đo 3 cách: thân cực trị nhánh thao túng (tài liệu), râu cực trị, râu + 0,3·ATR M5. Đích = DOL của mô hình; bỏ nếu < 2R.
+  Chưa đo: đích 2 STDV, breaker là nhóm nến, phiên New York.
+- Cả hai đi qua cùng quy trình chạm → phản ứng M1/M5 → vào thị trường như K1/K2; báo cáo tên `K2b`, `K3` (không tách định nghĩa phá).
+
+## 24. Sức mạnh cản và phản ứng tại cản (chủ bot duyệt 29/09/2026)
+
+**Trạng thái:** đã có trong công cụ đo `ScpSignalLab`; số liệu ghi ở `docs/HANDOFF.md` (lượt v5, v7). Lý do: lượt 1 tuần (05–12/01/2026) cho thấy tín hiệu ở cản thật
+≈ vào ngẫu nhiên ≈ cản giả; sổ cản nhận mọi đỉnh/đáy, mọi cặp gap… mà không phân biệt cản mạnh/yếu (~4.500 cản mới/tuần).
+Chủ bot chọn 4 tiêu chí; ngưỡng lấy từ 4 tài liệu khi có, còn lại [THỬ NGHIỆM] và báo cáo chia nhóm để đo. Chưa dùng làm bộ lọc.
+
+### 24.1 Đặc điểm sức mạnh của mỗi cản
+
+| Tiêu chí | Cách tính | Nhóm báo cáo | Nguồn |
+|---|---|---|---|
+| Lực bật | Quãng giá rời mép gần xa nhất trong 5 nến nguồn sau nến gốc, chia ATR nguồn lúc tạo | <1, 1–2, 2–3, ≥3 ATR | Rare SnR tr.7, 10, 21 (nến động lực); Unicorn (dịch chuyển mạnh) |
+| Thân động lực | Thân lớn nhất theo chiều rời cản, từ nến gốc tới hết 5 nến sau; chỉ nến thân ≥ 60% biên độ; chia ATR nguồn | <1, 1–1,5, ≥1,5 ATR | Rare SnR "thân dài" (không có ngưỡng) |
+| Phá cấu trúc | Hai đỉnh (với hỗ trợ) / đáy (với kháng cự) gần nhất trước nến gốc, nằm phía rời cản; đếm số mức bị giá đóng vượt trong 20 nến sau gốc và trước lần chạm đầu | 0, 1, 2 | 411 phần 1 (phá B rồi A); Unicorn |
+| Cản trùng | Số cản khác khung/loại (M15 trở lên) có dải chồng lên lúc chạm | 0, 1, 2, 3+ | Rare SnR tr.20; Unicorn (breaker ∩ FVG) |
+| Độ lớn đỉnh/đáy | Số nến bên trái trước khi có đáy thấp hơn mép xa (hỗ trợ) / đỉnh cao hơn (kháng cự), tối đa 500 | <10, 10–50, 50–200, ≥200 | Vị trí: đỉnh/đáy lớn hay đỉnh/đáy vặt |
+| Độ mới | Lần chạm thứ mấy | 1, 2, 3+ | Rare SnR tr.4, 8–9; 411 tr.5 |
+| Nến phá (bản đổi vai) | Thân nến phá theo chiều phá, cách tính như thân động lực | như thân động lực | Rare SnR tr.3–7 (nến động lực lật mức) |
+
+- Không nhìn trước: chỉ dùng nến đã đóng tới lúc chạm; lực bật và phá cấu trúc cập nhật dần sau khi cản được biết.
+- Số tròn, đỉnh/đáy ngày-tuần trước: không áp dụng. Bản đổi vai giữ đặc điểm của cản gốc và thêm nến phá.
+- Cản giả chép đặc điểm của cản thật gốc: so cùng đặc điểm, khác vị trí giá.
+- Không có điểm tổng hay trọng số (tài liệu không có); chọn tiêu chí sau khi đo.
+
+### 24.2 Gộp tín hiệu ở cản chồng nhau
+
+- Giữ từng cản như cũ (mép vùng, dừng lỗ không đổi).
+- Các tín hiệu vào thị trường phát ở cùng nến phản ứng, cùng chiều, khung vào, kiểu mốc, cùng lớp thật/giả, có dải chồng nhau (± đệm)
+  chỉ giữ một: bậc cản cao hơn → lần chạm sớm hơn → lực bật lớn hơn. Ghi số tín hiệu đã gộp. Lệnh chờ trên giấy không gộp.
+
+### 24.3 Đo phản ứng tại cản (không phụ thuộc cách vào lệnh)
+
+- Mỗi lần chạm mới của một cản: theo dõi giá bật xa nhất khỏi mép gần theo chiều cản; kết thúc khi nến M5 đóng qua mép xa + đệm (bị phá)
+  hoặc sau 240 phút. Nến M1 lúc chạm tính theo tick (bỏ phần giá trước lúc chạm), sau đó theo đỉnh/đáy nến M1.
+- Báo cáo `phan_ung_can.csv` theo từng đặc điểm ở 24.1 và theo nhóm/loại cản: % lần chạm bật ≥ 1/2/4 ATR M5 trước khi bị phá, % bị phá,
+  quãng bật trung bình; so với cản giả cùng đặc điểm.
+- Một tiêu chí được coi là "tạo ra cản mạnh" khi trên 01–06/2026 nhóm mạnh bật ≥ 2 ATR M5 nhiều hơn rõ nhóm yếu **và** hơn cản giả cùng nhóm,
+  với đủ mẫu. Chỉ khi đó mới dùng làm bộ lọc cho K1/K2, và vẫn phải qua nghiệm thu mục 23.5.
+
+### 24.4 Sửa lỗi tuổi cản (29/09)
+
+- Tuổi 200 nến (mục 23.2) tính theo số nến nguồn đã nhận, tăng mãi. Trước khi sửa, tuổi tính theo số nến chuỗi còn giữ (tối đa 1.500):
+  khi chuỗi đầy, cản M5/M15/M30/H1 tạo sau đó không bao giờ hết tuổi, chỉ chết khi bị phá, nên sổ cản dày dần theo thời gian.
+
+### 24.5 Thu hẹp vùng khung lớn và tuổi theo thời gian (chủ bot chọn 29/09 sau lượt v5)
+
+- Lý do (lượt v5, 05–12/01/2026, 1 tuần): mỗi lần chạm có trung vị **24 cản khác chồng lên** (p90: 43); độ rộng vùng trung vị
+  M15 $3,5 · H1 $7 · H4 $9,5 · D1 $20 · W1 $52; cản sống 200 nến (D1 ~200 ngày, W1 ~4 năm). Cản thật chỉ bật ≥ 2 ATR M5
+  hơn cản giả 2,2 điểm % (44,7% so với 42,5%).
+- **Tinh chỉnh** (Rare SnR tr.10: D1→H4→H1, W→D1→H4; 411 tr.14: vùng H4/H1 trong vùng D1): cản H4 xuống H1 rồi M15; D1 xuống H4 rồi H1;
+  W1 xuống D1 rồi H4. Mỗi bước: trong khoảng thời gian của nến mẫu (đỉnh/đáy, OB, vùng Z: 1 nến; Classic/Gap: 2 nến; Doji SnR: 4 nến),
+  lấy nến khung nhỏ có đỉnh cao nhất (kháng cự) / đáy thấp nhất (hỗ trợ); vùng mới = [mép thân, đầu râu] của nến đó, nằm trong vùng cũ.
+  Bước sau lặp lại trong nến vừa chọn. Dừng khi khung nhỏ không có dữ liệu từ đầu nến mẫu. Mức thân (Classic/Gap) nằm ngoài vùng mới thì chạm
+  ở mép gần. FVG, Unicorn, số tròn, đỉnh/đáy kỳ giữ nguyên. Báo cáo chia nhóm `tinh_chinh` = khung cuối cùng đã tinh chỉnh tới.
+- **Tuổi theo thời gian** từ nến gốc: M15–H1 5 ngày, H4 3 tuần, D1 3 tháng, W1 1 năm [THỬ NGHIỆM]. Cản tạm M5 giữ 200 nến; Unicorn 24 nến.
+  Bản đổi vai hết tuổi cùng cản gốc.
+
+### 24.6 Nghiên cứu trên dữ liệu nến ngoài (chủ bot chốt 29/09)
+
+- Dùng nến M1 XAUUSD miễn phí của Dukascopy (giá bid, UTC) để **nghiên cứu** phương pháp tìm cản ít nhiễu, vào lệnh, dừng lỗ, chốt lời.
+  Dữ liệu chỉ để nghiên cứu, không đưa vào repo; kết luận cuối phải kiểm trên máy thử MT5 với tick thật Exness.
+- **Chia dữ liệu [YÊU CẦU]:** tìm luật trên **01–12/2025**; kiểm lại trên **01–06/2026**; **khóa 07–09/2026**, chỉ mở một lần cuối
+  cho tối đa 3 tổ hợp đã chốt (giữ mục 23.5). Không chỉnh luật sau khi xem phần kiểm hoặc phần khóa.
+- Phí khi mô phỏng trên nến M1: spread 0,16 + trượt 0,3 mỗi chặng; nếu dừng lỗ và chốt lời cùng nằm trong một nến M1 thì tính dừng lỗ trước.

@@ -1,11 +1,69 @@
 # Bàn giao — Bot scalping theo phản ứng giá
 
-Cập nhật 28/09/2026. Nguồn luật: `docs/SPEC.md`; nền tảng MQL5 đã được chủ bot chốt.
+Cập nhật 30/09/2026. Nguồn luật: `docs/SPEC.md`; nền tảng MQL5 đã được chủ bot chốt.
+
+## Cập nhật 29/09 — nghiên cứu điểm vào/SL/TP (Claude)
+
+Tổng hợp nghiên cứu điểm vào/SL/TP tại `docs/research/13-entry-sl-tp-research.md`.
+Chủ bot định hướng: tìm cản ở khung lớn (M15, M30, H1, H4, D1, W1), M1/M5 chỉ để tìm điểm vào; né tin;
+làm công cụ đo tín hiệu (so ngẫu nhiên/đánh ngược/mức giá ngẫu nhiên) trước khi đổi cách vào.
+
+Sau đó (29/09): đọc lại từng trang 4 tài liệu của chủ bot (`docs/research/01`, `02`, `03`, `14`), tổng hợp ở `15`.
+Chủ bot duyệt hướng **HTF-ZONE 2.0** (SPEC mục 23): K1 đảo chiều ở cản mới, K2 phá rồi quay lại, K3 Unicorn, K4 đường xu hướng lần 3,
+K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo trước, EA sau.
+- Đã có công cụ đo đợt 1 `ScpSignalLab.mq5` (+ `SigLevels`, `SigDetect`, `SigTrack`, `SigReport`, `SigDraw`) và ca kiểm `SigVerify.mq5`.
+  Biên dịch 0 lỗi/0 cảnh báo (MetaEditor build 6231 qua Wine trên máy cloud); `SigVerify` 37/37 đạt trên MT5 cloud (gồm lệnh chờ trên giấy để so sánh).
+  **Chưa chạy máy thử với tick thật** (máy cloud không đăng nhập được sàn) → chủ bot chạy theo `scripts/TOOLS.md`.
+- Chưa làm: đợt 2 (vùng Z của 411, K3 Unicorn), đợt 3 (K4 đường xu hướng).
+- Phát hiện chưa sửa: `ScpNewsGuard` (bot 1.3) chỉ nạp tối đa 256 tin; lịch 12/2025–10/2026 có thể vượt → tin cuối kỳ bị bỏ.
+  Công cụ đo dùng bộ đọc riêng không giới hạn.
+- Bot 1.3 (`BotScpMtf`) giữ nguyên, vẫn biên dịch sạch.
+- Lượt máy thử đầu (chủ bot, máy `tandat`, 05–12/01/2026): **không có tick thật** ("no real ticks, every tick generation used")
+  → kết quả không dùng. Lộ lỗi cản đổi vai mãi khi giá dao động (143.572 lần bị phá/tuần, 28.847 tín hiệu, chạy 39 phút);
+  đã sửa: mỗi cản đổi vai một lần, giữ tuổi cản gốc (SPEC 23.2), có ca kiểm tái hiện.
+- Lượt 1 tuần có tick thật (`siglab_2026h1_v2`, 05–12/01/2026): chạy 2 phút 48 giây; 2.070.487 tick; chạm 19.197; phản ứng 5.308;
+  phá trong 1 nhịp 2.553; tín hiệu thật 2.985, từ cản giả 2.323; lệnh chờ trên giấy khớp 17.519. Số liệu hợp lý, chưa đọc kết quả thắng/thua.
+- Đọc lượt 1 tuần (1 tuần, chưa kết luận): sau trượt gần như mọi biến thể −0,1 đến −0,3R ở 1R, gần mức ngẫu nhiên/cản giả.
+  Lộ 2 lỗi, đã sửa (chủ bot đồng ý 29/09): (1) đích cản khung lớn quá sát giá vào (trung vị 0,03R) → lấy cản đầu tiên cách ≥ 1R (SPEC 23.4);
+  (2) file quá nặng (`tin_hieu.csv` 81 MB/tuần, giữ mọi bản ghi trong bộ nhớ) → bản ghi xong được chia nhóm ngay rồi bỏ,
+  `tin_hieu.csv` chỉ ghi khi `InpWriteSignals=true`; tra nhóm bằng bảng băm.
+  Sau đó chủ bot đồng ý áp cùng luật 1R cho đích DOL (DOL gần nhất trung vị 0,41R). `SigVerify` 43/43.
+  Hồ sơ đổi tên lượt: `siglab_2026h1_v4` (1 tuần), `siglab_2026h1_full_v3` (01–06).
+- Lượt `siglab_2026h1_v4` (chủ bot, cùng tuần): mọi bộ đếm và kết quả đích cố định 1R/1,5R/2R/3R trùng hệt v2; chạy 1 phút 58 giây, 221 MB.
+  Mọi tín hiệu thật đều có đích cản khung lớn và DOL ≥ 1R; cản khung lớn trung vị 1,08R (p90 1,39R) vì sổ cản dày, DOL trung vị 1,38R.
+  1 tuần, chưa kết luận: thật ≈ ngẫu nhiên ≈ cản giả (−0,11 đến −0,23R sau trượt); đánh ngược nhỉnh hơn thật ở mọi đích.
+- Chủ bot: tìm cản là phần then chốt; phải phân biệt cản mạnh/yếu theo tài liệu. Đã làm SPEC mục 24 (chưa có số liệu):
+  mỗi cản ghi lực bật, thân động lực, phá cấu trúc, cản trùng, độ lớn đỉnh/đáy, độ mới, nến phá; gộp tín hiệu ở cản chồng nhau;
+  đo riêng phản ứng tại cản (`phan_ung_can.csv`), so cản giả cùng đặc điểm. Sửa lỗi tuổi cản: sau khi chuỗi đầy 1.500 nến,
+  cản M5/M15/M30/H1 không bao giờ hết tuổi (có ca tái hiện, trượt trước khi sửa). `SigVerify` 53/53.
+  Hồ sơ lúc đó: `siglab_2026h1_v5` (1 tuần), `siglab_2026h1_full_v4` (01–06).
+- Đợt 2 (SPEC 23.6, chưa có số liệu): vùng Z của 411 (K2b, M15–D1, dùng sau khi phá B rồi A) và Unicorn (K3, M5/M15, DOL đỉnh/đáy
+  bằng nhau, breaker ∪ FVG, dừng lỗ theo nhánh thao túng, đích DOL ≥ 2R). Chưa lọc HSL/nhấn chìm, chưa đo đích 2 STDV.
+  `SigVerify` 57/57.
+- Lượt `siglab_2026h1_v5` (chủ bot, 1 tuần, bản có sức mạnh cản, chưa có đợt 2): 2 phút 8 giây; tín hiệu thật 1.128 (3.047 tín hiệu gộp),
+  9.077 lần chạm đo phản ứng. Cản thật bật ≥ 2 ATR M5 (~$9) 44,7% so với cản giả 42,5%; các tiêu chí sức mạnh chưa tách rõ (1 tuần);
+  OB nhỉnh nhất (+9,7 điểm). Lệnh 1R: thật −0,15R, ngẫu nhiên −0,16R, cản giả −0,18R, đánh ngược −0,12R (sau trượt, xa tin).
+  Phát hiện: mỗi lần chạm có trung vị 24 cản khác chồng lên; vùng D1 rộng ~$20, W1 ~$52 → giá luôn nằm trong vùng cản.
+- Chủ bot chọn: tinh chỉnh vùng H4/D1/W1 xuống khung nhỏ và tuổi cản theo thời gian (SPEC 24.5). `SigVerify` 58/58.
+  Hồ sơ đổi tên: `siglab_2026h1_v7` (1 tuần), `siglab_2026h1_full_v6` (01–06).
+- Lượt `siglab_2026h1_v7` (chủ bot, 1 tuần, đủ đợt 2 + 24.5, `SigVerify` 58/58 trên máy chủ bot): 1 phút 55 giây; vùng Z tạo 449, Unicorn 53;
+  tín hiệu thật 1.188. Cản chồng mỗi lần chạm trung vị 19 (v5: 24) — phần lớn do cản M15/M30/H1 (không tinh chỉnh; tuổi M15 5 ngày
+  dài hơn 200 nến cũ). Phản ứng tại cản: thật bật ≥ 2 ATR M5 43,9% so với giả 41,3%. Nhóm nhỉnh (mẫu nhỏ): FVG +13, OB +11,
+  phá cấu trúc 1 mức +15, nến phá ≥ 1,5 ATR +19, H1 +5. Vùng tinh chỉnh bị phá nhiều hơn (H4→M15 81%, D1→H1 94%: vùng hẹp,
+  nến M5 dễ đóng qua mép xa). Lệnh 1R (dừng +0,3 ATR, xa tin): K1 −0,14R, K2 −0,19R, K5 −0,15R; K2b 24 lệnh, K3 4 lệnh — quá ít.
+- Nghiên cứu trên nến ngoài bot (29–30/09): tài liệu `docs/research/16`–`18` và bộ đo `scripts/research/` **đã xóa theo yêu cầu chủ bot 30/09**;
+  bản cũ còn trong lịch sử Git (commit `326a9bb`). Kết luận dưới đây từ các lượt đo 29–30/09 chạy trong phiên Claude, **mã và số liệu chi tiết không lưu vào Git**, chỉ là ghi chú để tham khảo:
+  - Chưa có cách scalp vàng nào có lời sau chênh 0,24: cản theo tài liệu, swing/SBR/FVG, nến xác nhận, limit, DCA, hedge 2 đầu, chốt 1–5 giá
+    đều quanh hòa trước phí, âm sau phí; cản thật ≈ cản giả.
+  - Chỉ luật theo xu hướng H4 (phá đỉnh/đáy 20 nến H4, cùng chiều EMA200 D1, dừng 2 ATR, kéo dừng 3 ATR) qua kiểm 2020–06/2026 trên vàng:
+    +0,26R/lệnh, ~4 lệnh/tháng, sụt tối đa ~26R; 9 mã khác không có lợi thế. Chưa đưa vào bot, chủ bot chưa chốt.
+  - Tải lại dữ liệu: `scripts/tai-nen-dukascopy.mjs`, `scripts/tai-tick-exness.mjs` (xem `scripts/TOOLS.md`), lưu vào `data/` (không lên Git).
+    Chia dữ liệu SPEC 24.6 giữ nguyên; 07–09/2026 vẫn khóa.
 
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 
 Chủ bot duyệt sửa sau review; luật đã ghi ở SPEC (đầu file, mục 6.3, 8 S01, 11.2, 11.2a, 11.3, 13, 14.2, 14.7, 14.10).
-Chưa commit/push; không bật demo/thật. Các mục "Trạng thái/Bằng chứng" bên dưới là của bản 1.1, giữ làm lịch sử.
+Không bật demo/thật. Các mục "Trạng thái/Bằng chứng" bên dưới là của bản 1.1, giữ làm lịch sử.
 
 Đã sửa (công tắc trong EA để so trước/sau):
 - Thoát vì mốc vô hiệu chỉ khi nến M1 đóng qua mốc (trước: chạm là đóng, vô hiệu hóa đệm dừng).
@@ -74,7 +132,6 @@ không chỉ một nhịp hồi bình thường. Dừng khẩn cấp và giới 
 Đã sửa các nhóm lỗi sau review, không đổi ngôn ngữ và không bật demo/thật.
 Đây chưa phải chứng nhận toàn bộ SPEC hoặc chứng minh lợi nhuận.
 Chủ bot cho phép khởi động lại MT5 chính để kiểm tra; không được đụng bản MT5 portable của dự án khác.
-Chưa commit/push trong lượt sửa này.
 
 ## Những thay đổi đã có trong mã
 

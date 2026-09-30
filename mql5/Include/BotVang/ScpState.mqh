@@ -3,7 +3,6 @@
 #ifndef SCP_STATE_MQH
 #define SCP_STATE_MQH
 
-#include "ScpTypes.mqh"
 
 #define SK_CAP          "cap"       // vốn tham chiếu tổng
 #define SK_CAP_TIME     "capT"      // lúc đặt vốn tham chiếu
@@ -78,7 +77,6 @@ public:
      }
 
    bool              Healthy() { return m_healthy; }
-   string            Prefix() { return m_prefix; }
 
    bool              Has(const string k) { return GlobalVariableCheck(Key(k)); }
    double            Get(const string k, double def = 0.0) { return GlobalVariableCheck(Key(k)) ? GlobalVariableGet(Key(k)) : def; }
@@ -90,11 +88,6 @@ public:
         { m_healthy = false; Print("[SCP][STATE] không lưu được khóa ", k, " lỗi ", GetLastError()); }
       m_dirty = true;
      }
-   void              Del(const string k)
-     {
-      if(GlobalVariableDel(Key(k)))
-         m_dirty = true;
-     }
    void              Flush()
      {
       if(m_dirty)
@@ -104,17 +97,6 @@ public:
         }
      }
 
-   // Terminal tự xóa biến sau 4 tuần không dùng: ghi lại định kỳ.
-   void              Touch()
-     {
-      for(int i = GlobalVariablesTotal() - 1; i >= 0; i--)
-        {
-         string n = GlobalVariableName(i);
-         if(StringFind(n, m_prefix) == 0)
-            GlobalVariableSet(n, GlobalVariableGet(n));
-        }
-      GlobalVariablesFlush();
-     }
   };
 
 #endif // SCP_STATE_MQH

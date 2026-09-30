@@ -1,0 +1,16 @@
+InpRunName=siglab_2026h1_v7
+InpSeed=20260929
+InpFakeLevels=true
+InpRandomCopies=2
+InpMaxHoldMin=480
+InpReactBars=3
+InpUseM1=true
+InpUseM5=true
+InpUseM5Minor=true
+InpChaseAtr=0.25
+InpSlipPerLeg=0.3
+InpNewsBeforeMin=5
+InpNewsAfterMin=5
+InpWarmupBars=800
+InpDraw=true
+InpWriteSignals=true

@@ -1,4 +1,4 @@
-<!-- Tổng hợp nghiên cứu (tiếng Anh) do nhóm đọc tạo ngày 27/09/2026 từ các chỉ báo công khai trên TradingView. Tóm tắt tiếng Việt: docs/HANDOFF.md §0b. -->
+<!-- Tổng hợp nghiên cứu (tiếng Anh) do nhóm đọc tạo ngày 27/09/2026 từ các chỉ báo công khai trên TradingView. Tóm tắt tiếng Việt: docs/research/15-tong-hop-phuong-phap-can.md. -->
 
 # Research synthesis: SMC, MSNR, OB, FVG, liquidity and price-action rules from public TradingView scripts
 

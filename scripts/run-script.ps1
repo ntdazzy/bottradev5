@@ -2,7 +2,7 @@
 # Script phải có input InpCloseTerminal (script tự đóng MT5 khi xong). Cần build trước bằng scripts\build.ps1.
 # Ví dụ:
 #   powershell -ExecutionPolicy Bypass -File scripts\run-script.ps1 -Script BotVang\ExportNews
-#   powershell -ExecutionPolicy Bypass -File scripts\run-script.ps1 -Script BotVang\LabVerify -Params 'InpRun=goc_KHAMPHA_s1_1234abcd;InpMax=1000'
+#   powershell -ExecutionPolicy Bypass -File scripts\run-script.ps1 -Script BotVang\ScpVerify
 param(
     [Parameter(Mandatory = $true)][string]$Script,
     [string]$Params = '',            # các cặp Ten=giatri, ngăn nhau bằng dấu ;

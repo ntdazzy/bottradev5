@@ -3,7 +3,6 @@
 #ifndef SCP_SAFETY_MQH
 #define SCP_SAFETY_MQH
 
-#include "ScpTypes.mqh"
 #include "ScpState.mqh"
 
 // Mốc ngày/tuần theo múi giờ rủi ro (mặc định UTC+7, SPEC 14.1).
@@ -207,7 +206,6 @@ public:
       m_total_pct = total_pct;
      }
 
-   double            RiskPercent() { return m_risk_pct; }
    bool              LockedOut() { return Locked; }
    string            LockText() { return LockReason; }
 

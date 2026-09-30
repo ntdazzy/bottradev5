@@ -588,7 +588,7 @@ private:
            }
          ScpProposal p;
          if(Compose(dir, SCP_SC_S04, (ENUM_SCP_TF)tfi, 0, 0, 0, SCP_THESIS_LOCAL_REACTION, inval,
-                    s.Atr(), (dir > 0) ? SCP_RE_P1 : SCP_RE_P1, cur.known_at,
+                    s.Atr(), SCP_RE_P1, cur.known_at,
                     "phản ứng tại biên " + DoubleToString(edge, 3) + " của phạm vi " +
                     DoubleToString(lower, 3) + "-" + DoubleToString(upper, 3),
                     fr, zones, q, eps_g, p))

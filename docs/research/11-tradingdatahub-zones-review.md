@@ -1,4 +1,4 @@
-<!-- Tổng hợp (tiếng Anh) về source cũ C:\Users\NTD\Desktop\TradingDataHub, chỉ đọc, ngày 27/09/2026. -->
+<!-- Tổng hợp (tiếng Anh) về source cũ TradingDataHub (dự án khác, chỉ đọc), ngày 27/09/2026. -->
 
 **TradingDataHub (TDH) and FVG/OB/S/R zones: what it defines, what it measured, what BotVangLab can reuse**
 

@@ -1,4 +1,4 @@
-// ScpVerify.mq5 — chạy các ca kiểm tra của bot SCP-MTF-1.0.
+// ScpVerify.mq5 — chạy các ca kiểm tra của bot SCP-MTF-1.3.
 // Nguồn luật: docs/SPEC.md mục 17 (AC01–AC41). Không gửi lệnh, không đọc tài khoản.
 // Chạy: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-script.ps1 -Script BotVang\ScpVerify -Period M1
 #property script_show_inputs
@@ -314,7 +314,6 @@ void TestScenarios()
    // AC02: D1 giảm rõ, M1 bật tăng tại hỗ trợ → phải xét S02, không bị cổng H1 loại.
    datetime td = D'2026.01.05 00:00';
    BuildDownZigzag(*SFR.Get(SCP_TF_D1), td);
-   long eid2 = 0;
    SZN2.Init();
    SEP2.Init();
    long zid2 = SZN2.AddFromPivot(SCP_TF_M1, zb, false, t1 + 60, 1.0, 0.01);
@@ -322,7 +321,7 @@ void TestScenarios()
    ScpZone z2;
    SZN2.Find(zid2, z2);
    SEP2.Watch(z2, 101.2, eps_g, t1 + 600, SCP_TF_M1, 1.0, 0, 101.2, 100.3);
-   eid2 = SEP2.Watch(z2, 100.2, eps_g, t1 + 700, SCP_TF_M1, 1.0, 0, 101.2, 100.3);
+   SEP2.Watch(z2, 100.2, eps_g, t1 + 700, SCP_TF_M1, 1.0, 0, 101.2, 100.3);
    ScpProposal p2;
    conflict = "";
    eng.Init(); // bối cảnh kiểm độc lập, không phải gọi lặp cùng một nến
@@ -655,7 +654,6 @@ void TestEmaBranch()
       m5.PushBar(MkBar(t + (datetime)(i * 300), 100.0, 100.5, 99.5, 100.0, 300));
    ScpBar zbT = MkBar(t, 105.6, 105.7, 105.0, 105.4, 900);
    SZN.AddFromPivot(SCP_TF_M5, zbT, true, t + 900, 1.0, 0.01);
-   double ema = m5.Ema(20, m5.Count()-1);
    ScpSeries *m1 = SFR.Get(SCP_TF_M1);
    for(int i=0;i<150;i++) m1.PushBar(MkBar(t+i*60,100,100.5,99.5,100));
    double frozen_atr = m1.Atr();
@@ -756,7 +754,6 @@ void TestFalseBreakAndValidity()
    ScpProposal p; string conflict="";
    bool got=eng.Run(SFR,SZN,SEP,q,p,conflict);
    Ac(got && p.scenario==SCP_SC_S07,"REG10","râu xuyên rồi rút lại không cần đóng phá trước");
-   ScpZone original; SZN.Find(zid,original);
    long same=SZN.AddFromPivot(SCP_TF_M5,demand,false,t+900,0.5,0.01);
    ScpZone samezone;
    Ac(SZN.Find(same,samezone),"REG11","thêm vùng trùng trả lại mã vùng tồn tại");
@@ -1020,7 +1017,7 @@ void TestReviewFixes()
 
 void OnStart()
   {
-   Print("== ScpVerify SCP-MTF-1.0 ==");
+   Print("== ScpVerify SCP-MTF-1.3 ==");
    TestPivotConfirmation();
    TestDirectionAndTransition();
    TestEmaSeed();

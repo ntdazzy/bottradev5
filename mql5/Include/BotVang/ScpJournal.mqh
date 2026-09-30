@@ -4,7 +4,6 @@
 #define SCP_JOURNAL_MQH
 
 #include "ScpTypes.mqh"
-#include "ScpPlan.mqh"
 
 class ScpJournal
   {
@@ -40,10 +39,7 @@ public:
       m_folder = folder;
       m_symbol = sym;
       m_run = run;
-      if(!FolderCreate(folder, FILE_COMMON))
-        {
-         // Có thể đã tồn tại; vẫn tiếp tục thử mở file.
-        }
+      FolderCreate(folder, FILE_COMMON);   // có thể đã tồn tại; vẫn tiếp tục thử mở file
       bool exists=FileIsExist(folder+"\\quyet_dinh.csv",FILE_COMMON);
       if(exists && MQLInfoInteger(MQL_TESTER))
         { Print("[SCP][JOURNAL] tên lần chạy đã tồn tại; không ghi đè"); return false; }
