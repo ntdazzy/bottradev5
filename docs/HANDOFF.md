@@ -51,12 +51,14 @@ K5 tiếp diễn; **chỉ vào thị trường sau phản ứng M1/M5**; đo tr�
   dài hơn 200 nến cũ). Phản ứng tại cản: thật bật ≥ 2 ATR M5 43,9% so với giả 41,3%. Nhóm nhỉnh (mẫu nhỏ): FVG +13, OB +11,
   phá cấu trúc 1 mức +15, nến phá ≥ 1,5 ATR +19, H1 +5. Vùng tinh chỉnh bị phá nhiều hơn (H4→M15 81%, D1→H1 94%: vùng hẹp,
   nến M5 dễ đóng qua mép xa). Lệnh 1R (dừng +0,3 ATR, xa tin): K1 −0,14R, K2 −0,19R, K5 −0,15R; K2b 24 lệnh, K3 4 lệnh — quá ít.
-- Nghiên cứu cản ít nhiễu (`docs/research/16*`): mã mở, cộng đồng, học thuật → lợi thế cản nhỏ (~4–5 điểm), số tròn và đỉnh/đáy đã bật
-  nhiều lần có bằng chứng; FVG/OB/gap chưa có. Chủ bot yêu cầu nghiên cứu trên dữ liệu nến: đã tải nến M1 XAUUSD Dukascopy 01/2025–09/2026
-  (527.692 nến tới 06/2026; thiếu 04/09/2025) vào scratchpad, không vào repo. Chia dữ liệu theo SPEC 24.6: tìm 2025, kiểm 01–06/2026, khóa 07–09/2026.
-  Bộ đo nghiên cứu (node, scratchpad) tái hiện kết quả MT5: cản kiểu hiện tại trên 03–12/2025 bật thật 44,0% vs giả 42,7% (+1,3 ± 1,9),
-  lệnh −0,18R vs ngẫu nhiên −0,16R. Đang chạy đo 7 họ phương pháp (Rare SnR chặt, 411 chặt, cản lõi, mốc ngày/tuần/phiên, cản râu của chủ bot,
-  Unicorn chặt, phá vùng mở phiên) có kiểm tra chéo nhìn trước.
+- Nghiên cứu trên nến ngoài bot (29–30/09): tài liệu `docs/research/16`–`18` và bộ đo `scripts/research/` **đã xóa theo yêu cầu chủ bot 30/09**;
+  cần thì lấy lại từ lịch sử Git (commit `326a9bb`). Kết luận chính, đo trên nến/tick Dukascopy và tick Exness XAUUSDm thật, luôn so với vào ngẫu nhiên và cản giả:
+  - Chưa có cách scalp vàng nào có lời sau chênh 0,24: cản theo tài liệu, swing/SBR/FVG, nến xác nhận, limit, DCA, hedge 2 đầu, chốt 1–5 giá
+    đều quanh hòa trước phí, âm sau phí; cản thật ≈ cản giả.
+  - Chỉ luật theo xu hướng H4 (phá đỉnh/đáy 20 nến H4, cùng chiều EMA200 D1, dừng 2 ATR, kéo dừng 3 ATR) qua kiểm 2020–06/2026 trên vàng:
+    +0,26R/lệnh, ~4 lệnh/tháng, sụt tối đa ~26R; 9 mã khác không có lợi thế. Chưa đưa vào bot, chủ bot chưa chốt.
+  - Tải lại dữ liệu: `scripts/tai-nen-dukascopy.mjs`, `scripts/tai-tick-exness.mjs` (xem `scripts/TOOLS.md`), lưu vào `data/` (không lên Git).
+    Chia dữ liệu SPEC 24.6 giữ nguyên; 07–09/2026 vẫn khóa.
 
 ## Cập nhật 28/09 tối — bản `SCP-MTF-1.3-review-fixes` (Claude)
 

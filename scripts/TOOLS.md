@@ -52,6 +52,25 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-scalp.ps1
   Kết quả chuyển động sau 5 phút không phải kết quả một EA có dừng/chốt. Không tự sửa luật hay bật EMA.
 - Từ chối ghi đè kết quả. Dữ liệu nhận muộn/khoảng trống bị loại khỏi cửa sổ đo; không tự lấp nến.
 
+## `scripts/tai-nen-dukascopy.mjs` và `scripts/tai-tick-exness.mjs` — tải dữ liệu giá để nghiên cứu ngoài MT5
+
+```bash
+npm install --no-save dukascopy-node@1.50.0          # một lần, chỉ cần cho tai-nen-dukascopy.mjs
+node scripts/tai-nen-dukascopy.mjs m1   --tu 2015-01-01 --den 2026-07-01   # nến M1 vàng (bid, UTC)
+node scripts/tai-nen-dukascopy.mjs h1   --ma xagusd --tu 2003-01-01        # nến H1 một mã, mỗi năm một file
+node scripts/tai-nen-dukascopy.mjs tick --tu 2025-03-01 --den 2026-07-01   # tick Dukascopy có bid và ask
+node scripts/tai-tick-exness.mjs --ma XAUUSDm --tu 2023-01 --den 2026-06   # tick thật của Exness (kho công khai), cần curl và unzip
+```
+
+- Lưu vào `data/dukascopy/<mã>/{m1,h1,tick}/` và `data/exness/<mã>/tick/`; `data/` không đưa lên Git. Chạy lại bỏ qua file đã có.
+- M1: `t,o,h,l,c,v` mỗi dòng, `t` là mili giây UTC lúc mở nến. H1: `t,o,h,l,c`.
+  Tick (cả hai nguồn): 10 byte mỗi tick = Int32LE mili giây trong ngày, Int32LE bid×1000, Int16LE (ask−bid)×1000.
+- Từ chối `--den` sau 2026-07-01 (tháng 07/2026 với Exness): 07–09/2026 là dữ liệu khóa theo SPEC 24.6.
+- Dukascopy hay giới hạn tần suất (lỗi 429): script báo `loi_tai`, không ghi file thiếu và thoát mã 2; chạy lại sau vài phút để tải tiếp.
+  Ngày tick thiếu giờ nào trong 00–20h UTC thì báo `canh_bao_thieu_gio`.
+- Kho Exness chỉ có mã thường (`XAUUSDm`, `XAUUSD`…), không có `XAUUSD247m`; chênh giá trong kho có thể đã làm tròn, không phải chênh thật của tài khoản.
+- Khoảng thời gian (đo 29/09): nến M1 10 năm ~1 giờ, tick Dukascopy 16 tháng ~20 phút, tick Exness 3,5 năm ~30 phút; tổng dữ liệu ~4 GB.
+
 ## Điều tra lệnh — `diagnose-scalp.mjs` và `ScalpDiagnose.mq5`
 
 1. Chạy lại cùng luật với `run-tester.ps1 -Expert BotVang\BotScalpPhanUng.ex5 -SetFile lab\scalp_audit.set -Symbol XAUUSDm -Period M1 -From 2026.01.05 -To 2026.09.26`.
