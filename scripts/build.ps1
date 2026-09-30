@@ -1,8 +1,8 @@
 ﻿# Chép mql5/ của dự án vào thư mục dữ liệu MT5 (lưu UTF-16 để MetaEditor đọc đúng tiếng Việt),
 # biên dịch từng file .mq5 bằng MetaEditor và in lỗi. Thoát mã 1 nếu có lỗi.
-# Ví dụ: powershell -ExecutionPolicy Bypass -File scripts\build.ps1 -Target Experts\BotVang\BotVangLab.mq5
+# Ví dụ: powershell -ExecutionPolicy Bypass -File scripts\build.ps1 -Target Experts\BotVang\BotScpMtf.mq5
 param(
-    [string[]]$Target = @('Experts\BotVang\BotVangLab.mq5'),
+    [string[]]$Target = @('Experts\BotVang\BotScpMtf.mq5'),
     [string]$DataDir = $(if ($env:BOTVANG_MT5_DATA) { $env:BOTVANG_MT5_DATA } else { Join-Path $env:APPDATA 'MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075' }),
     [string]$MetaEditor = $(if ($env:BOTVANG_MT5_INSTALL) { Join-Path $env:BOTVANG_MT5_INSTALL 'MetaEditor64.exe' } else { 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' })
 )

@@ -1,6 +1,6 @@
 ﻿# Chạy Strategy Tester của MT5 chính bằng dòng lệnh, in log của lần chạy, rồi mở lại MT5 như trước.
 # Ví dụ:
-#   powershell -ExecutionPolicy Bypass -File scripts\run-tester.ps1 -Expert BotVang\BotVangLab.ex5 -SetFile lab\base.set
+#   powershell -ExecutionPolicy Bypass -File scripts\run-tester.ps1 -Expert BotVang\ScpSignalLab.ex5 -SetFile lab\siglab_2026h1.set
 param(
     [Parameter(Mandatory = $true)][string]$Expert,
     [string]$SetFile = '',
